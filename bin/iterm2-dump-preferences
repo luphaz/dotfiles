@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# This script will dump iTerm2 preferences to disks.
+# To do so, it will first kill iTerm2 processes and then preferences daemon to force it to dump preferences to disk.
+# source from following link:
+# - https://github.com/mbadolato/iTerm2-Color-Schemes/issues/140#issuecomment-406883978
+
+killall iTerm2
+killall cfprefsd
+
+# if you wanna check your settings file is correct, you can use this command:
+# > defaults read ~/Library/Preferences/com.googlecode.iterm2
+# in particular after a version updates you should see the expected newly version

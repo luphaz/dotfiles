@@ -1,3 +1,48 @@
-- clean: []
-- link: {}
-- shell: []
+- defaults:
+    link:
+      relink: true
+      force: true
+
+- clean: ["~"]
+
+- shell:
+    # update with git submodule update --init --remote
+    - [git submodule update --init --recursive, Installing submodules]
+    - [cp fonts/*.ttf ~/Library/Fonts/., Installing fonts]
+
+# dotbot plugins: https://github.com/anishathalye/dotbot/wiki/Plugins
+
+# https://github.com/wren/dotbot-brew
+- install-brew: true
+
+# Reads brewfile for packages to install
+# - brewfile:
+#     # brew bundle dump --file brew/Brewfile
+#     - brew/Brewfile
+
+- git:
+    ~/.dotfiles/.oh-my-zsh/custom/themes/powerlevel10k:
+      url: https://github.com/romkatv/powerlevel10k.git
+      description: "oh my zsh - powerlevel10k"
+
+# https://github.com/hujianxin/dotbot-vscode
+- vscodefile:
+    file: vscode/VSCodefile
+    insiders: false
+
+- link:
+    ~/.gitattributes: git/.gitattributes
+    ~/.gitignore: git/.gitignore
+    ~/.gitconfig: git/.gitconfig
+    ~/.ssh/config: ssh/config
+    ~/.zshrc: zsh/.zshrc
+    ~/Library/Preferences/com.googlecode.iterm2.plist: iterm2/com.googlecode.iterm2.plist
+    ~/Library/Application Support/Code/User:
+      path: vscode/user/**
+      glob: true
+
+- create:
+    - ~/Git
+# duti to map extensions to applications https://github.com/moretension/duti
+# jinja templates if dynanism is required https://github.com/ssbanerje/dotbot-template
+# - perhaps create a new SSH key + GPG key if does not exists

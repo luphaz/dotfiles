@@ -1,0 +1,94 @@
+{
+  "go.languageServerExperimentalFeatures": {
+    "diagnostics": true
+  },
+  "github.copilot.enable": {
+    "*": true,
+    "markdown": true,
+    "plaintext": true,
+    "yaml": true
+  },
+  "explorer.confirmDragAndDrop": false,
+  "security.workspace.trust.untrustedFiles": "open",
+  "terminal.integrated.copyOnSelection": true,
+  "terminal.integrated.fontFamily": "MesloLGS NF",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.trimTrailingWhitespace": true,
+  "redhat.telemetry.enabled": false,
+  "terminal.integrated.scrollback": 100000,
+  "files.trimFinalNewlines": true,
+  "editor.accessibilitySupport": "off",
+  "files.defaultLanguage": "en_US",
+  "remote.extensionKind": {
+    "pub.name": ["ui"]
+  },
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "go.alternateTools": {
+    "gofmt": "golines -m 80 -w --shorten-comments "
+  },
+  "go.toolsManagement.autoUpdate": true,
+  "gitlens.advanced.messages": {
+    "suppressRebaseSwitchToTextWarning": true
+  },
+  "terminal.external.osxExec": "iTerm.app",
+  "editor.inlineSuggest.enabled": true,
+  "terminal.integrated.profiles.osx": {
+    "zsh": {
+      "path": "/bin/zsh",
+      "args": ["-l"]
+    }
+  },
+  "go.lintTool": "golangci-lint",
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.yml.gotmpl": "yaml",
+    "*.yaml.gotmpl": "yaml",
+    "*.yaml.tpl": "yaml",
+    "*.yml.tpl": "yaml",
+    "*.json.tpl": "json",
+    "*.plist": "plist"
+  },
+  "search.exclude": {
+    "**/.git": true
+  },
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/argoproj/argo-workflows/master/api/jsonschema/schema.json": [
+      "argo.*.yaml",
+      "argo.yaml",
+      ".argo.yml"
+    ]
+  },
+  "diffEditor.ignoreTrimWhitespace": false,
+  "explorer.confirmDelete": false,
+  "go.formatTool": "gofmt",
+  "editor.tabSize": 2,
+  "files.insertFinalNewline": true,
+  "shellcheck.customArgs": ["-x"],
+  "terminal.explorerKind": "external",
+  "workbench.editorAssociations": {
+    "*.ipynb": "jupyter-notebook",
+    "git-rebase-todo": "default",
+    "*.plist": "default"
+  },
+  "go.buildTags": "main,!main,integration,!integration,unit,!unit",
+  "go.lintFlags": ["--fast"],
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "terminal.integrated.env.osx": {
+    "FIG_NEW_SESSION": "1"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "yaml.maxItemsComputed": 50000,
+  "editor.foldingMaximumRegions": 50000,
+  "go.testEnvVars": {
+  "CONSUL_ADDR": "localhost:8500",
+  },
+  "editor.codeActionsOnSave": {
+
+  }
+}

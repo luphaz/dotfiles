@@ -1,0 +1,64 @@
+# This is Git's per-user configuration file.
+[user]
+    name = luphaz
+    email = luphaz@users.noreply.github.com
+    signingkey = 7F3F595C107611EA7DBA151AC451AB4F4199E439
+
+[url "git@github.com:"]
+    insteadOf = "https://github.com/"
+
+[pull]
+    ff = only
+
+[url "git://"]
+	insteadOf = https://
+
+[init]
+	defaultBranch = main
+
+[push]
+	default = simple
+
+[core]
+	excludesFile = ~/.gitignore
+	attributesfile = ~/.gitattributes
+
+[commit]
+	gpgsign = true
+
+[gpg]
+	program = gpg2
+
+[core]
+	editor = code --wait
+	ignorecase = false
+
+[diff]
+    tool = vscode
+
+[difftool "vscode"]
+    cmd = code --wait --diff $LOCAL $REMOTE
+
+[merge]
+    tool = vscode
+
+[mergetool "vscode"]
+    cmd = code --wait $MERGED
+
+# [difftool]
+# 	prompt = false
+
+# [diff "dyff"]
+# 	command = 'dyff_between() { dyff --color on between --omit-header "$2" "$5"; }; dyff_between'
+
+[alias]
+	ca = commit --amend --no-edit
+	cam = commit --amend
+	caa = commit --amend --no-edit -a
+	caam = commit --amend -a
+	ll = log --oneline --graph --all --decorate
+	po = remote prune origin --dry-run
+	pof = remote prune origin
+	pf = push --force-with-lease
+	pff = push --force
+	root = rev-parse --show-toplevel

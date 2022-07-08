@@ -1,0 +1,50 @@
+{
+	// Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+	// Placeholders with the same ids are connected.
+	// Example:
+	"require test suite": {
+		"scope": "go,golang",
+		"prefix": "rtest",
+		"body": [
+			"package metrics",
+			"",
+			"import (",
+			"\t\"testing\"",
+			"",
+			"\t\"github.com/sirupsen/logrus\"",
+			"\tlogrusTest \"github.com/sirupsen/logrus/hooks/test\"",
+			"",
+			"\t\"github.com/golang/mock/gomock\"",
+			"\t\"github.com/stretchr/testify/suite\"",
+			")",
+			"",
+			"type ${1:SuiteName}TestSuite struct {",
+			"\tsuite.Suite",
+			"\tlogger *logrus.Entry",
+			"\tctrl   *gomock.Controller",
+			"\trequire *require.Assertions",
+			"\t$0",
+			"}",
+			"",
+			"func Test${1:SuiteName}TestSuite(t *testing.T) {",
+			"\tsuite.Run(t, new(${1:SuiteName}TestSuite))",
+			"}",
+			"",
+			"func (s *${1:SuiteName}TestSuite) SetupTest() {",
+			"\tlg, _ := logrusTest.NewNullLogger()",
+			"\ts.logger = logrus.NewEntry(lg)",
+			"\ts.ctrl = gomock.NewController(s.T())",
+			"\ts.require = require.New(s.T())",
+			"}",
+			"",
+			"func (s *${1:SuiteName}TestSuite) TearDownTest() {",
+			"\ts.ctrl.Finish()",
+			"}",
+		],
+		"description": "Create a new require test suite"
+	}
+}

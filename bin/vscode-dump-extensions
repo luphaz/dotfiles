@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# This script will dump all VSCode extensions into our settings file.
+# This might be used prior to re-run install to validate newly installed extensions won't be uninstalled.
+
+code --list-extensions > ./vscode/VSCodefile
