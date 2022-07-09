@@ -126,7 +126,7 @@ POWERLEVEL9K_SHORTEN_DELIMITER=""
 POWERLEVEL9K_SHORTEN_STRATEGY="truncate_from_right"
 
 # Add asdf from brew BEFORE any aliases
-if [[ -z "${ASDF_DIR}" ]]; then
+if [[ -z "${ASDF_DIR}" ]] && [[ -d "/usr/local/Cellar/asdf" ]]; then
   asdf_folder="/usr/local/Cellar/asdf"
   asdf_version="$(ls "${asdf_folder}" | tail -n1)"
   export ASDF_DIR="${asdf_folder}/${asdf_version}/libexec"
