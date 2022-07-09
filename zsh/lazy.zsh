@@ -4,28 +4,26 @@
 alias c="code ."
 
 # Used to edit "root directory"
-cr(){code $(git root)}
+cr() {code $(git root)}
 
 # Used to move to the "root directory"
-cdr(){cd $(git root)}
+cdr() {cd $(git root)}
 
 # Used to edit quickly zshrc into VSCode
-alias ez="code ~/.dotfiles/zsh/lazy.zsh ~/.dotfiles/zsh/zshrc ~/.dotfiles ~/.dotfiles/git/config"
+alias ez="code ~/.dotfiles/zsh/lazy.zsh ~/.dotfiles/zsh/.zshrc ~/.dotfiles ~/.dotfiles/git/.config"
 
 # Kill all jobs in background using a do while like loop
 kj() {
   jobs
   kill %
   result=$?
-  while [[ $result == 0 ]]
-  do
+  while [[ $result == 0 ]]; do
     kill %
     result=$?
     echo last command result is $result
     sleep 1
   done
 }
-
 
 # Used to run minikube shortly
 alias mk=minikube
@@ -105,7 +103,7 @@ grbiom() {
   grbi "origin/$(gdbr)" "$@"
 }
 
-grb-child(){
+grb-child() {
   parent_branch="$1"
   shift
   git rebase origin/master --onto "${parent_branch}" -Xours "$@"
@@ -186,14 +184,14 @@ go-direct() {
 # update direct packages to latest version
 go-up() {
   exclude="${1}"
-	for package in $(go-direct); do
+  for package in $(go-direct); do
     if [[ "${exclude}" != *"${package}"* ]]; then
       echo "updating package: ${package}@latest..."
       go get -d "${package}@latest"
     else
       echo "${package} skipped to be updated because part of provided exclusion: ${exclude}"
     fi
-	done
+  done
   go mod tidy -v
 }
 
@@ -220,7 +218,7 @@ alias gw="git worktree"
 
 # Used to create a new branch with an up to date defaultBranch (and all tracked branches)
 # possible to give a jira link or directly branch name
-gn(){
+gn() {
   gfm
   gcb "$(jira-branch-name "$1" "$2")"
 }
