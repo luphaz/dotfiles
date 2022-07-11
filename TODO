@@ -3,5 +3,10 @@ OK VSCODE config (json)
 OK VSCODE extensions
 OK ITERM config
 OK fonts
-bitbar config (might miss a bashrc to expose sensitive env vars)
-alfred plugins and configuration whenever not sensitive
+OK bitbar (now XBar) config (might miss a bashrc to expose sensitive env vars)
+  OK, use env and start from profile
+  to enhance by creating a specific daemon with appropriate configuration (dedicated user/env?)
+KO alfred plugins and configuration whenever not sensitive
+  require private sync, unsafe
+Cleanup brew definitions
+How to either uninstall vscode extensions but warn or dump first?

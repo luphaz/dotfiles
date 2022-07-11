@@ -10,7 +10,7 @@ cr() {code $(git root)}
 cdr() {cd $(git root)}
 
 # Used to edit quickly zshrc into VSCode
-alias ez="code ~/.dotfiles/zsh/lazy.zsh ~/.dotfiles/zsh/.zshrc ~/.dotfiles ~/.dotfiles/git/.config"
+alias ez="code ~/.dotfiles/zsh/lazy.zsh ~/.dotfiles/zsh/.zshrc ~/.dotfiles ~/.dotfiles/git/.gitconfig"
 
 # Kill all jobs in background using a do while like loop
 kj() {

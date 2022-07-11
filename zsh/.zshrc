@@ -199,6 +199,9 @@ export KUBE_EDITOR='code --wait'
 # export KUBECTL_EXTERNAL_DIFF="colordiff  --side-by-side --suppress-common-lines"
 export KUBECTL_EXTERNAL_DIFF="dyff between --omit-header --set-exit-code"
 
+# hook direnv to automatically load enviroment variables
+eval "$(direnv hook zsh)"
+
 # Fuzzy finding configuration if exists
 [[ -f "$HOME/.fzf.zsh" ]] && . "$HOME/.fzf.zsh"
 

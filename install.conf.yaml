@@ -9,6 +9,7 @@
     # update with git submodule update --init --remote
     - [git submodule update --init --recursive, Installing submodules]
     - [cp fonts/*.ttf ~/Library/Fonts/., Installing fonts]
+    # - [./bin/vscode-dump-extensions, Dump existing VSCode extensions]
 
 # dotbot plugins: https://github.com/anishathalye/dotbot/wiki/Plugins
 
@@ -36,10 +37,15 @@
     ~/.gitconfig: git/.gitconfig
     ~/.ssh/config: ssh/config
     ~/.zshrc: zsh/.zshrc
+    ~/.envrc: direnv/.envrc
     ~/Library/Preferences/com.googlecode.iterm2.plist: iterm2/com.googlecode.iterm2.plist
     ~/Library/Application Support/Code/User:
-      path: vscode/user/**
+      path: vscode/user/*
       glob: true
+    ~/Library/Application Support/Code/User/snippets: vscode/user/snippets
+    ~/Library/Application Support/xbar/plugins: xbar/plugins
+    # ~/Library/LaunchAgents/XBar-daemon.restart.plist: xbar/XBar-daemon.restart.plist
+    ~/Library/Application Support/Alfred/Alfred.alfredpreferences: ~/Library/Mobile Documents/com~apple~CloudDocs/DevConfig/Alfred/Alfred.alfredpreferences
 
 - create:
     - ~/Git
