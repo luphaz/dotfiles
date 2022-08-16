@@ -4,7 +4,6 @@ eamodio.gitlens
 esbenp.prettier-vscode
 exiasr.hadolint
 foxundermoon.shell-format
-GitHub.copilot
 GitHub.remotehub
 golang.go
 hashicorp.terraform
@@ -21,5 +20,4 @@ redhat.java
 redhat.vscode-commons
 redhat.vscode-yaml
 timonwong.shellcheck
-withfig.fig
 zxh404.vscode-proto3
