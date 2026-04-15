@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -e
+
+CONFIG="install.conf.yaml"
+DOTBOT_DIR="dotbot"
+DOTBOT_BIN="bin/dotbot"
+BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cd "${BASEDIR}"
+
+# Install Homebrew on Linux if not present (pinned to a known-good install script commit)
+if [[ "$(uname)" == "Linux" ]] && ! command -v brew &>/dev/null; then
+  BREW_INSTALL_SHA="de0b0bddf1c78731dcd16d953b2f5d29d070e229"
+  echo "Installing Homebrew (pinned @ ${BREW_INSTALL_SHA:0:7})..."
+  curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/${BREW_INSTALL_SHA}/install.sh" | bash
+  # Add brew to PATH for the rest of this script
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv 2>/dev/null || true)"
+fi
+
+# Create ~/.dotfiles symlink early so dd-dotfiles install can rely on it
+ln -sfn "${BASEDIR}" "${HOME}/.dotfiles"
+
+# Bootstrap all submodules (dotbot, dotbot-git, dotbot-brew, .oh-my-zsh) before running dotbot
+git submodule update --init --recursive
+
+"${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-git --plugin-dir dotbot-brew -c "${CONFIG}" "${@}"

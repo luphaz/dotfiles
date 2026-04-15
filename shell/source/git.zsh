@@ -34,7 +34,7 @@ git-remote-set-head() {
 
 # checkout default branch
 # you can provide more args like --force (at your own risks)
-unalias gcm
+unalias gcm 2>/dev/null
 gcm() {
   git checkout $(gdbr) "$@"
 }
@@ -52,7 +52,7 @@ alias gpro="gh pr view --web"
 alias gprv="gh pr view"
 
 # Used to rebase origin/defaultBranch onto current branch
-unalias grbom
+unalias grbom 2>/dev/null
 grbom() {
   git rebase "origin/$(gdbr)" "$@"
 }
@@ -140,7 +140,7 @@ git-dig() {
 }
 
 # Used to update the current or given branch and push changes remotely (wipe remote if no changes )
-unalias gup
+unalias gup 2>/dev/null
 gup() {
   if [[ -n "$1" ]]; then
     gco "$1"

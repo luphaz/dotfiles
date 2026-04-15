@@ -1,15 +1,32 @@
 # ~/.zshrcdotfiles — sourced from ~/.zshrc
 # p10k instant prompt must stay in ~/.zshrc (before this file is sourced)
 
-# Homebrew
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:${PATH}"
+# Homebrew — OS-aware prefix
+if [[ "$(uname)" == "Darwin" ]]; then
+  export HOMEBREW_PREFIX="/opt/homebrew"
+elif [[ -d "/home/linuxbrew/.linuxbrew" ]]; then
+  export HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+else
+  export HOMEBREW_PREFIX="${HOME}/.linuxbrew"
+fi
+export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin:${PATH}"
 export HOMEBREW_NO_INSECURE_REDIRECT=1
 export HOMEBREW_CASK_OPTS=--require-sha
-export HOMEBREW_DIR=/opt/homebrew
-export HOMEBREW_BIN=/opt/homebrew/bin
+export HOMEBREW_DIR="${HOMEBREW_PREFIX}"
+export HOMEBREW_BIN="${HOMEBREW_PREFIX}/bin"
 
-# Prefer GNU binaries
-export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:${PATH}"
+# Prefer GNU binaries (macOS only — Linux already uses GNU coreutils)
+[[ "$(uname)" == "Darwin" ]] && export PATH="${HOMEBREW_PREFIX}/opt/coreutils/libexec/gnubin:${PATH}"
+
+# Use 1Password as the SSH agent (macOS only).
+# ~/.ssh/agent-link is a stable symlink to the 1Password socket — avoids a
+# path with spaces ("Group Containers") that tmux's update-environment and
+# some tools (e.g. workspaces CLI's Go SSH client) don't handle reliably.
+if [[ "$(uname)" == "Darwin" ]]; then
+  [[ "$(readlink "${HOME}/.ssh/agent-link" 2>/dev/null)" == "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" ]] \
+    || ln -sf "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "${HOME}/.ssh/agent-link"
+  export SSH_AUTH_SOCK="${HOME}/.ssh/agent-link"
+fi
 
 # Go
 export GOPATH="${HOME}/go"
@@ -20,9 +37,15 @@ export PATH="${HOME}/.dotfiles/shell/bin:${PATH}"
 export LC_ALL=en_US.UTF-8
 export LC_CTYPE=en_US.UTF-8
 
-# Auto-start tmux with a unique session name
-if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [[ $- == *i* ]]; then
-  exec tmux new
+export FZF_DEFAULT_OPTS='--cycle'
+
+# Auto-attach to the last active tmux session, or create "main" if none exist.
+if command -v tmux &>/dev/null && [[ -z "$TMUX" ]] && [[ $- == *i* ]]; then
+  if tmux list-sessions &>/dev/null 2>&1; then
+    exec tmux attach-session
+  else
+    exec tmux new-session -s main
+  fi
 fi
 
 # Path to your oh-my-zsh installation.
@@ -48,18 +71,19 @@ plugins=(
 )
 
 # Add completion paths BEFORE oh-my-zsh's compinit (so one compinit covers all)
-fpath=(/opt/homebrew/share/zsh/site-functions /Users/matthieu.bono/.docker/completions $fpath)
+fpath=("${HOMEBREW_PREFIX}/share/zsh/site-functions" "${HOME}/.docker/completions" $fpath)
 
 source "${ZSH}/oh-my-zsh.sh"
 
 # google-cloud-sdk (after oh-my-zsh so compdef is already available — no extra compinit)
-[[ -f /opt/homebrew/share/google-cloud-sdk/path.zsh.inc ]] && \
-  source /opt/homebrew/share/google-cloud-sdk/path.zsh.inc
-[[ -f /opt/homebrew/share/google-cloud-sdk/completion.zsh.inc ]] && \
-  source /opt/homebrew/share/google-cloud-sdk/completion.zsh.inc
+[[ -f "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc" ]] && \
+  source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
+[[ -f "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc" ]] && \
+  source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
 
 # required to load zsh-autosuggestions AFTER fzf-tab https://github.com/Aloxaf/fzf-tab#install
-source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+[[ -f "${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && \
+  source "${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
 bindkey '^j' jq-complete
 
@@ -97,10 +121,3 @@ unset _direnv_hook_cache
 
 # Source private dotfiles overlay if available
 [[ -f ~/.dd-dotfiles/init.zsh ]] && source ~/.dd-dotfiles/init.zsh
-
-# brew fpath + compinit moved above oh-my-zsh source (single compinit)
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"
-
-# Created by `pipx`
-export PATH="$PATH:$HOME/.local/bin"

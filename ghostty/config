@@ -1,0 +1,12 @@
+# ── Appearance ───────────────────────────────────────────────────────
+theme = tokyonight
+
+# ── Shell integration ────────────────────────────────────────────────
+shell-integration = zsh
+
+# ── Extended keys (required for Claude Code Shift+Enter / Ctrl+Enter)
+# Ghostty sends these natively; tmux.conf forwards them with extkeys.
+
+# ── Keybinds ─────────────────────────────────────────────────────────
+# CMD+K → clear screen + scrollback (forwarded to tmux binding)
+keybind = cmd+k=text:\x1bk

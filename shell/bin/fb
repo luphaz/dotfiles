@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# File browser — fzf tree with bat preview, opens selection in tvim.
+# Usage: fb [dir]   (defaults to current directory)
+# Used by the 'fb' shell alias and the Ctrl+E tmux binding.
+dir="${1:-.}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+file=$(find "$dir" -type f -not -path '*/.git/*' | sort \
+  | fzf --reverse --no-sort \
+         --preview 'bat --color=always --style=numbers --line-range=:500 {}' \
+         --preview-window=right:70%:wrap:~3 \
+         --header='[enter] open · [shift+click] select text · [esc] close') \
+  && "$SCRIPT_DIR/tvim" "$file"

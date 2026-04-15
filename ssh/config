@@ -9,4 +9,5 @@ Host *
   ControlPath /tmp/ssh*mux*%h*%p*%r
   ControlPersist 10m
   ServerAliveInterval 30
+  ForwardAgent yes
 

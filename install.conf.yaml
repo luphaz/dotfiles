@@ -6,12 +6,20 @@
 - clean: ["~"]
 
 - shell:
+    # Bootstrap all submodules: dotbot, dotbot-git, dotbot-brew, .oh-my-zsh
     - [git submodule update --init --recursive, Installing submodules]
-    # Append source line to ~/.zshrc if not present (or create it)
-    # This keeps ~/.zshrc owned by the system/Ansible while our config lives in ~/.zshrcdotfiles
-    # Ensure p10k instant prompt + zshrcdotfiles hook exist in ~/.zshrc
+    # Clone private dd-dotfiles overlay if accessible (requires SSH key; silently skipped if not)
     - - |
-        grep -qF 'zshrcdotfiles' ~/.zshrc 2>/dev/null || cat >> ~/.zshrc <<'HOOK'
+        if [[ ! -d ~/git/dd-dotfiles/.git ]]; then
+          git clone git@github.com:luphaz/dd-dotfiles.git ~/git/dd-dotfiles 2>/dev/null \
+            && echo "dd-dotfiles cloned" \
+            || echo "dd-dotfiles skipped (no SSH access)"
+        fi
+      - Cloning dd-dotfiles private overlay
+    # Append zshrcdotfiles hook to ~/.zshrc if not already present.
+    # Grep for the actual source line — avoids false-positive on the comment at top of zshrcdotfiles.
+    - - |
+        grep -qF 'source ~/.zshrcdotfiles' ~/.zshrc 2>/dev/null || cat >> ~/.zshrc <<'HOOK'
 
         # p10k instant prompt (must be near top of .zshrc)
         if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
@@ -22,10 +30,38 @@
         [[ -f ~/.zshrcdotfiles ]] && source ~/.zshrcdotfiles
         HOOK
       - Hooking zshrcdotfiles into .zshrc
-    # Ensure ~/.ssh/config includes our public SSH config
-    - - grep -qF 'config.dotfiles' ~/.ssh/config 2>/dev/null || echo 'Include ~/.ssh/config.dotfiles' >> ~/.ssh/config
-      - Hooking SSH config.dotfiles into ~/.ssh/config
+    # Ensure ~/.ssh/config is a regular file (not a symlink) that includes our public SSH config.
+    # Grep for the actual Include directive — avoids false-positive on the comment at top of ssh/config.
+    - - |
+        if [[ -L ~/.ssh/config ]]; then
+          rm ~/.ssh/config
+        fi
+        grep -qxF 'Include ~/.ssh/config.dotfiles' ~/.ssh/config 2>/dev/null || echo 'Include ~/.ssh/config.dotfiles' >> ~/.ssh/config
+      - Ensuring ~/.ssh/config includes config.dotfiles
+    # Enable macOS press-and-hold accent popup in Ghostty (disabled by default in terminal apps)
+    # Note: popup appears after one key repeat (Ghostty limitation — InitialKeyRepeat has no effect)
+    - [defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool true, Enable press-and-hold accents in Ghostty]
+    # Install w3m on Linux (workspaces/EC2) — macOS uses Brewfile instead.
+    - - |
+        if [[ "$(uname)" != "Darwin" ]]; then
+          sudo apt-get install -y w3m 2>/dev/null || true
+        fi
+      - Installing w3m terminal browser (Linux)
+    # Link dd-dotfiles xbar plugins into the xbar plugins dir (optional: no-op if dd-dotfiles not present)
+    - - |
+        xbar_dir="${HOME}/Library/Application Support/xbar/plugins"
+        dd_xbar="${HOME}/.dd-dotfiles/xbar/plugins"
+        if [[ -d "$dd_xbar" ]]; then
+          for f in "$dd_xbar"/*; do
+            ln -sf "$f" "$xbar_dir/$(basename "$f")"
+          done
+        fi
+      - Linking dd-dotfiles xbar plugins
 
+- brewfile:
+    - Brewfile
+
+# Clone oh-my-zsh plugins into ~/.dotfiles/.oh-my-zsh/custom/ (oh-my-zsh itself is a submodule)
 - git:
     ~/.dotfiles/.oh-my-zsh/custom/themes/powerlevel10k:
       url: https://github.com/romkatv/powerlevel10k.git
@@ -43,15 +79,33 @@
       url: https://github.com/reegnz/jq-zsh-plugin.git
       description: "oh my zsh - jq"
 
+- create:
+    - ~/.config/nvim
+    - ~/.config/ghostty
+    - ~/.claude
+    - ~/Library/Application Support/xbar/plugins
+
 - link:
+    ~/.dotfiles: ~/git/dotfiles
+    ~/.dd-dotfiles: ~/git/dd-dotfiles
     ~/.gitattributes: git/.gitattributes
     ~/.gitignore: git/.gitignore
     ~/.gitconfig: git/.gitconfig
     ~/.ssh/config.dotfiles: ssh/config
-    ~/.zshrcdotfiles: ~/.dotfiles/shell/.zshrc
-    ~/.p10k.zsh: ~/.dotfiles/shell/.p10k.zsh
+    ~/.ssh/allowed_signers: ~/.dd-dotfiles/ssh/allowed_signers
+    ~/.zshrcdotfiles: shell/.zshrc
+    ~/.p10k.zsh: shell/.p10k.zsh
     ~/.tmux.conf: tmux/.tmux.conf
+    ~/.config/ghostty/config: ghostty/config
     ~/.config/nvim/init.lua: nvim/init.lua
-
-- create:
-    - ~/git
+    ~/Library/Application Support/xbar/plugins:
+      path: xbar/plugins
+      glob: true
+      force: true
+    # Claude config — sourced from dd-dotfiles (optional: no-op if dd-dotfiles not present)
+    ~/.claude/CLAUDE.md: ~/.dd-dotfiles/claude/CLAUDE.md
+    ~/.claude/includes: ~/.dd-dotfiles/claude/includes
+    ~/.claude/memory: ~/.dd-dotfiles/claude/memory
+    ~/.claude/skills: ~/.dd-dotfiles/claude/skills
+    ~/.claude/settings.json: ~/.dd-dotfiles/claude/settings.json
+    ~/.claude/statusline-command.sh: ~/.dd-dotfiles/claude/statusline-command.sh

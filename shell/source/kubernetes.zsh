@@ -24,6 +24,14 @@ kgpnl() {
   fi
 }
 
+# remove all finalizers from a resource
+kdf() {
+  k patch "$@" --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
+}
+
+# local k8s via lima
+alias kdev="kubecontext lima"
+
 alias kex="k exec -it"
 kexp() {
   pod_name=$1
@@ -47,3 +55,8 @@ kexl() {
 }
 
 kgpy() { kgp -oyaml "$@" | yq }
+
+alias mk=minikube
+alias ist=istioctl
+unalias l 2>/dev/null
+alias l=limactl
