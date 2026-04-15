@@ -8,8 +8,12 @@
 
 export PATH="/opt/homebrew/bin:$HOME/dd/devtools/bin:$PATH"
 
-GH="$HOME/dd/devtools/bin/gh"
+GH="$HOME/.dd-dotfiles/bin/gh"
 JQ=/opt/homebrew/bin/jq
+
+# Load team authors and priority repos from dd-dotfiles (graceful fallback if missing)
+TEAM_AUTHORS=$(cat "$HOME/.dd-dotfiles/git/authors" 2>/dev/null || echo '[]')
+PRIORITY_REPOS=$(cat "$HOME/.dd-dotfiles/git/repositories" 2>/dev/null || echo '[]')
 
 JSON=$($GH search prs --review-requested=@me --state=open \
   --json repository,title,number,url,author,createdAt,labels \
@@ -23,7 +27,6 @@ if [ $? -ne 0 ] || [ -z "$JSON" ]; then
 fi
 
 # Filter to team members only
-TEAM_AUTHORS='["AxelleFesard", "oceane-vlt", "LorisFriedel", "dexter0195", "d33d33", "stombre"]'
 JSON=$(echo "$JSON" | $JQ --argjson team "$TEAM_AUTHORS" '[.[] | select([.author.login] | inside($team))]')
 
 COUNT=$(echo "$JSON" | $JQ 'length')
@@ -57,12 +60,12 @@ else
 fi
 echo "---"
 
-echo "$JSON" | $JQ -r --argjson names "$NAME_MAP" --arg days "$STALE_DAYS" '
+echo "$JSON" | $JQ -r --argjson names "$NAME_MAP" --arg days "$STALE_DAYS" --argjson priority_repos "$PRIORITY_REPOS" '
   (now - ($days | tonumber) * 86400) as $cutoff |
   def repo_key:
-    if .repository.name == "terraform-config" then "0"
-    elif .repository.name == "cloud-inventory" then "1"
-    else "2-\(.repository.name)"
+    ($priority_repos | index(.repository.name)) as $idx |
+    if $idx != null then "\($idx)"
+    else "99-\(.repository.name)"
     end;
   def is_stale:
     (.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) < $cutoff;

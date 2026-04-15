@@ -8,7 +8,7 @@
 
 export PATH="/opt/homebrew/bin:$HOME/dd/devtools/bin:$PATH"
 
-GH="$HOME/dd/devtools/bin/gh"
+GH="$HOME/.dd-dotfiles/bin/gh"
 JQ=/opt/homebrew/bin/jq
 
 # --- Fetch open PRs authored by me ---

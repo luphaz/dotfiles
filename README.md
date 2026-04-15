@@ -23,6 +23,8 @@ dotfiles/
 │       └── kubernetes.zsh
 ├── ssh/                 # SSH config → linked as ~/.ssh/config.dotfiles
 ├── tmux/                # .tmux.conf
+├── xbar/                # xbar menu bar plugins
+├── Brewfile             # Homebrew packages (brew bundle)
 └── install              # bootstrap script
 ```
 

@@ -24,10 +24,6 @@ kgpnl() {
   fi
 }
 
-unalias kgd 2>/dev/null
-alias kgd="kg disruption"
-alias kgda="kgd --all-namespaces"
-
 # remove all finalizers from a resource
 kdf() {
   k patch "$@" --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
@@ -59,3 +55,8 @@ kexl() {
 }
 
 kgpy() { kgp -oyaml "$@" | yq }
+
+alias mk=minikube
+alias ist=istioctl
+unalias l 2>/dev/null
+alias l=limactl

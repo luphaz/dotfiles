@@ -60,6 +60,7 @@ alias d=docker
 alias g=git
 alias v=nvim
 alias dc="docker-compose"
+alias dclean="docker run --rm --privileged=true -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc"
 alias grep="grep --color=auto -i"
 alias ..='cd ..'
 alias ...='cd ../..'
