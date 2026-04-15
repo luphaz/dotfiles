@@ -48,7 +48,7 @@ plugins=(
 )
 
 # Add completion paths BEFORE oh-my-zsh's compinit (so one compinit covers all)
-fpath=(/opt/homebrew/share/zsh/site-functions /Users/matthieu.bono/.docker/completions $fpath)
+fpath=(/opt/homebrew/share/zsh/site-functions "${HOME}/.docker/completions" $fpath)
 
 source "${ZSH}/oh-my-zsh.sh"
 
