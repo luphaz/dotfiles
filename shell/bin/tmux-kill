@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Kill one or more tmux sessions via fzf (multi-select with Tab).
+# Current session is excluded — killing it would close Ghostty.
 # Used by Ctrl+K (Ghostty) and Ctrl+Q (Termius alias).
-tmux-ls | fzf --ansi --reverse --no-sort --multi \
+current=$(tmux display-message -p '#S' 2>/dev/null)
+tmux-ls | grep -v " ${current} " | fzf --ansi --reverse --no-sort --multi \
   --prompt='Kill session: ' \
   --preview='tmux capture-pane -ep -t {-1}' \
   --preview-window=right:60% \

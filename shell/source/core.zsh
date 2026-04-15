@@ -18,8 +18,10 @@ ts() {
 }
 
 tk() {
-  local sessions
+  local current sessions
+  current=$(tmux display-message -p '#S' 2>/dev/null)
   sessions=$(tmux-ls \
+    | grep -v " ${current} " \
     | fzf --ansi --height=40% --reverse --no-sort --multi \
            --preview='tmux capture-pane -ep -t {-1}' \
            --preview-window=right:60%) \
