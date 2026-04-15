@@ -24,6 +24,18 @@ kgpnl() {
   fi
 }
 
+unalias kgd 2>/dev/null
+alias kgd="kg disruption"
+alias kgda="kgd --all-namespaces"
+
+# remove all finalizers from a resource
+kdf() {
+  k patch "$@" --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
+}
+
+# local k8s via lima
+alias kdev="kubecontext lima"
+
 alias kex="k exec -it"
 kexp() {
   pod_name=$1

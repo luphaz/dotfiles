@@ -6,7 +6,7 @@
 - clean: ["~"]
 
 - shell:
-    # Bootstrap all submodules: dotbot, dotbot-git, .oh-my-zsh
+    # Bootstrap all submodules: dotbot, dotbot-git, dotbot-brew, .oh-my-zsh
     - [git submodule update --init --recursive, Installing submodules]
     # Clone private dd-dotfiles overlay if accessible (requires SSH key; silently skipped if not)
     - - |
@@ -52,6 +52,10 @@
       url: https://github.com/reegnz/jq-zsh-plugin.git
       description: "oh my zsh - jq"
 
+- create:
+    - ~/.config/nvim
+    - ~/Library/Application Support/xbar/plugins
+
 - link:
     ~/.dotfiles: ~/git/dotfiles
     ~/.dd-dotfiles: ~/git/dd-dotfiles
@@ -63,6 +67,7 @@
     ~/.p10k.zsh: shell/.p10k.zsh
     ~/.tmux.conf: tmux/.tmux.conf
     ~/.config/nvim/init.lua: nvim/init.lua
-
-- create:
-    - ~/.config/nvim
+    ~/Library/Application Support/xbar/plugins:
+      path: xbar/plugins
+      glob: true
+      force: true
