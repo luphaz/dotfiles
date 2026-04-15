@@ -39,10 +39,14 @@ export LC_CTYPE=en_US.UTF-8
 
 export FZF_DEFAULT_OPTS='--cycle'
 
-# Auto-attach to the last active tmux session, or create "main" if none exist.
+# Auto-attach to the most recently used tmux session, or create "main" if none exist.
+# Explicitly sort by session_last_attached — attach-session without -t uses creation
+# order, not recency.
 if command -v tmux &>/dev/null && [[ -z "$TMUX" ]] && [[ $- == *i* ]]; then
   if tmux list-sessions &>/dev/null 2>&1; then
-    exec tmux attach-session
+    _tmux_last=$(tmux list-sessions -F '#{session_last_attached} #{session_name}' \
+      | sort -rn | head -1 | awk '{print $2}')
+    exec tmux attach-session -t "$_tmux_last"
   else
     exec tmux new-session -s main
   fi
