@@ -30,6 +30,11 @@ attributesfile = ~/.gitattributes
 # gpgsign enabled via dd-dotfiles overlay (requires signing key)
 verbose = true
 
+# Machine-specific signing config (1Password SSH on macOS, etc.)
+# No-op if ~/.dd-dotfiles is not present.
+[include]
+  path = ~/.dd-dotfiles/git/.gitconfig
+
 [core]
 editor = tvim
 ignorecase = false

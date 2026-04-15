@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Kill one or more tmux sessions via fzf (multi-select with Tab).
+# Used by Ctrl+K (Ghostty) and Ctrl+Q (Termius alias).
+tmux-ls | fzf --ansi --reverse --no-sort --multi \
+  --prompt='Kill session: ' \
+  --preview='tmux capture-pane -ep -t {-1}' \
+  --preview-window=right:60% \
+  | awk '{print $NF}' \
+  | while read -r s; do
+      tmux kill-session -t "$s" && echo "killed: $s"
+    done

@@ -1,0 +1,16 @@
+[submodule "dotbot"]
+	path = dotbot
+	url = https://github.com/anishathalye/dotbot
+	shallow = true
+[submodule "dotbot-git"]
+	path = dotbot-git
+	url = https://github.com/DrDynamic/dotbot-git.git
+	shallow = true
+[submodule ".oh-my-zsh"]
+	path = .oh-my-zsh
+	url = https://github.com/ohmyzsh/ohmyzsh.git
+	shallow = true
+[submodule "dotbot-brew"]
+	path = dotbot-brew
+	url = https://github.com/wren/dotbot-brew.git
+	shallow = true
