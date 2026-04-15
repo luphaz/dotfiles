@@ -1,0 +1,57 @@
+- defaults:
+    link:
+      relink: true
+      force: true
+
+- clean: ["~"]
+
+- shell:
+    - [git submodule update --init --recursive, Installing submodules]
+    # Append source line to ~/.zshrc if not present (or create it)
+    # This keeps ~/.zshrc owned by the system/Ansible while our config lives in ~/.zshrcdotfiles
+    # Ensure p10k instant prompt + zshrcdotfiles hook exist in ~/.zshrc
+    - - |
+        grep -qF 'zshrcdotfiles' ~/.zshrc 2>/dev/null || cat >> ~/.zshrc <<'HOOK'
+
+        # p10k instant prompt (must be near top of .zshrc)
+        if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+          source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+        fi
+
+        # Load dotfiles config
+        [[ -f ~/.zshrcdotfiles ]] && source ~/.zshrcdotfiles
+        HOOK
+      - Hooking zshrcdotfiles into .zshrc
+    # Ensure ~/.ssh/config includes our public SSH config
+    - - grep -qF 'config.dotfiles' ~/.ssh/config 2>/dev/null || echo 'Include ~/.ssh/config.dotfiles' >> ~/.ssh/config
+      - Hooking SSH config.dotfiles into ~/.ssh/config
+
+- git:
+    ~/.dotfiles/.oh-my-zsh/custom/themes/powerlevel10k:
+      url: https://github.com/romkatv/powerlevel10k.git
+      description: "oh my zsh - powerlevel10k"
+    ~/.dotfiles/.oh-my-zsh/custom/plugins/fzf-tab:
+      url: https://github.com/Aloxaf/fzf-tab.git
+      description: "oh my zsh - fzf-tab"
+    ~/.dotfiles/.oh-my-zsh/custom/plugins/fast-syntax-highlighting:
+      url: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
+      description: "oh my zsh - fast-syntax-highlighting"
+    ~/.dotfiles/.oh-my-zsh/custom/plugins/forgit:
+      url: https://github.com/wfxr/forgit.git
+      description: "oh my zsh - forgit"
+    ~/.dotfiles/.oh-my-zsh/custom/plugins/jq:
+      url: https://github.com/reegnz/jq-zsh-plugin.git
+      description: "oh my zsh - jq"
+
+- link:
+    ~/.gitattributes: git/.gitattributes
+    ~/.gitignore: git/.gitignore
+    ~/.gitconfig: git/.gitconfig
+    ~/.ssh/config.dotfiles: ssh/config
+    ~/.zshrcdotfiles: ~/.dotfiles/shell/.zshrc
+    ~/.p10k.zsh: ~/.dotfiles/shell/.p10k.zsh
+    ~/.tmux.conf: tmux/.tmux.conf
+    ~/.config/nvim/init.lua: nvim/init.lua
+
+- create:
+    - ~/git
