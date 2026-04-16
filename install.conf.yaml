@@ -37,12 +37,12 @@
           defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool true
         fi
       - Enable press-and-hold accents in Ghostty (macOS only)
-    # Install w3m on Linux (workspaces/EC2) — macOS uses Brewfile instead.
+    # Install essentials on Linux (workspaces/EC2) — macOS uses Brewfile instead.
     - - |
         if [[ "$(uname)" != "Darwin" ]]; then
-          sudo apt-get install -y w3m 2>/dev/null || true
+          sudo apt-get install -y fzf w3m 2>/dev/null || true
         fi
-      - Installing w3m terminal browser (Linux)
+      - Installing essentials (Linux)
 
 # Clone oh-my-zsh plugins into ~/.dotfiles/.oh-my-zsh/custom/ (oh-my-zsh itself is a submodule)
 - git:
