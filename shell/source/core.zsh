@@ -1,8 +1,16 @@
 #!/usr/bin/env zsh
 
-# Claude Code
-alias ccl='claude --tmux=classic --worktree --strict-mcp-config'
-alias cce='claude --tmux=classic --worktree'
+# Claude Code (worktree disabled for dotfiles — small repo, direct edits are fine)
+ccl() {
+  local flags=(--strict-mcp-config)
+  [[ "$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")" != "dotfiles" ]] && flags+=(--worktree)
+  claude "${flags[@]}" "$@"
+}
+cce() {
+  local flags=()
+  [[ "$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")" != "dotfiles" ]] && flags+=(--worktree)
+  claude "${flags[@]}" "$@"
+}
 
 # tmux
 alias tl='tmux list-sessions -F "#{session_activity} #{session_name}: #{session_windows} windows (created #{t:session_created})#{?session_attached, (attached),}" 2>/dev/null | sort -rn | cut -d" " -f2-'
