@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Open the GitHub PR for the current branch in the browser.
+# Falls back to xdg-open on Linux.
+set -euo pipefail
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
+[[ "$branch" == "main" || "$branch" == "master" ]] && exit 0
+
+url=$(gh pr view "$branch" --json url --jq .url 2>/dev/null) || exit 0
+[[ -z "$url" ]] && exit 0
+
+if command -v open &>/dev/null; then
+  open "$url"
+elif command -v xdg-open &>/dev/null; then
+  xdg-open "$url"
+fi
