@@ -76,8 +76,11 @@ plugins=(
 )
 
 # Add completion paths BEFORE oh-my-zsh's compinit (so one compinit covers all)
-fpath=("${HOMEBREW_PREFIX}/share/zsh/site-functions" "${HOME}/.docker/completions" $fpath)
+[[ -n "$HOMEBREW_PREFIX" ]] && fpath=("${HOMEBREW_PREFIX}/share/zsh/site-functions" $fpath)
+[[ -d "${HOME}/.docker/completions" ]] && fpath=("${HOME}/.docker/completions" $fpath)
 
+# Reset completion state when oh-my-zsh was already loaded (workspace double-load)
+[[ -n "$ZSH_COMPDUMP" ]] && unset ZSH_COMPDUMP
 source "${ZSH}/oh-my-zsh.sh"
 
 # google-cloud-sdk (after oh-my-zsh so compdef is already available — no extra compinit)
