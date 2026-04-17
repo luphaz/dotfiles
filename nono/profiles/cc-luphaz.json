@@ -1,0 +1,37 @@
+{
+  "extends": "claude-code",
+  "meta": {
+    "name": "cc-luphaz",
+    "version": "0.1.0",
+    "description": "Claude Code + luphaz public dotfiles & ~/.claude config. Extends the built-in claude-code profile with read-write access to personal dotfiles and the Claude config subtree used by CLAUDE.md, skills, agents and custom commands."
+  },
+  "filesystem": {
+    "allow": [
+      "$HOME/.dotfiles",
+      "$HOME/.claude/skills",
+      "$HOME/.claude/includes",
+      "$HOME/.claude/agents",
+      "$HOME/.claude/commands",
+      "$HOME/.claude/projects"
+    ],
+    "allow_file": [
+      "$HOME/.claude/CLAUDE.md",
+      "$HOME/.claude.json"
+    ],
+    "read_file": [
+      "$HOME/.claude/settings.json",
+      "$HOME/.claude/keybindings.json"
+    ]
+  },
+  "network": {
+    "allow_domain": [
+      "docs.anthropic.com",
+      "docs.claude.com",
+      "platform.openai.com",
+      "learn.microsoft.com",
+      "developer.hashicorp.com",
+      "docs.datadoghq.com",
+      "gitlab.ddbuild.io"
+    ]
+  }
+}
