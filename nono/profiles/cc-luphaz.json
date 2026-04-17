@@ -2,25 +2,12 @@
   "extends": "claude-code",
   "meta": {
     "name": "cc-luphaz",
-    "version": "0.1.0",
-    "description": "Claude Code + luphaz public dotfiles & ~/.claude config. Extends the built-in claude-code profile with read-write access to personal dotfiles and the Claude config subtree used by CLAUDE.md, skills, agents and custom commands."
+    "version": "0.2.0",
+    "description": "Claude Code for luphaz: built-in claude-code + rw ~/.dotfiles + custom network allowlist. The built-in claude-code profile already grants rw to the whole $HOME/.claude tree and $HOME/.claude.json — we don't redeclare those here."
   },
   "filesystem": {
     "allow": [
-      "$HOME/.dotfiles",
-      "$HOME/.claude/skills",
-      "$HOME/.claude/includes",
-      "$HOME/.claude/agents",
-      "$HOME/.claude/commands",
-      "$HOME/.claude/projects"
-    ],
-    "allow_file": [
-      "$HOME/.claude/CLAUDE.md",
-      "$HOME/.claude.json"
-    ],
-    "read_file": [
-      "$HOME/.claude/settings.json",
-      "$HOME/.claude/keybindings.json"
+      "$HOME/.dotfiles"
     ]
   },
   "network": {
