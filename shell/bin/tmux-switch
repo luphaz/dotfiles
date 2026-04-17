@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Session switcher with inline create:
+#   - highlight an existing session + Enter → switch to it
+#   - type a name that matches no session + Enter → create a new session with that name
+#   - Ctrl+N inside fzf → force-create a session with the typed query (bypasses matches)
+# The fzf header updates live to indicate which action Enter will perform.
+# Used by the tmux Ctrl+S binding.
+set -euo pipefail
+
+HINT='enter: switch · type a new name to create · ctrl-n: force create'
+
+result=$(
+  "${HOME}/.dotfiles/shell/bin/tmux-ls" | fzf \
+    --ansi \
+    --reverse \
+    --no-sort \
+    --print-query \
+    --expect=ctrl-n \
+    --prompt='Session: ' \
+    --header="$HINT" \
+    --bind "change:transform-header:[ \"\$FZF_MATCH_COUNT\" = 0 ] && [ -n \"\$FZF_QUERY\" ] && printf '\033[33m+ new session: %s\033[0m — enter to create' \"\$FZF_QUERY\" || printf '%s' '$HINT'" \
+    --preview='tmux capture-pane -ep -t {-1} 2>/dev/null' \
+    --preview-window=right:60%
+) || exit 0
+
+query=$(printf '%s\n' "$result" | sed -n '1p')
+key=$(printf '%s\n' "$result" | sed -n '2p')
+selection=$(printf '%s\n' "$result" | sed -n '3p')
+
+if [ "$key" = "ctrl-n" ]; then
+  name="$query"
+  [ -z "$name" ] && [ -n "$selection" ] && name=$(printf '%s' "$selection" | awk '{print $NF}')
+  [ -z "$name" ] && exit 0
+  tmux new-session -d -s "$name" 2>/dev/null || true
+  tmux switch-client -t "$name"
+elif [ -n "$selection" ]; then
+  name=$(printf '%s' "$selection" | awk '{print $NF}')
+  tmux switch-client -t "$name"
+elif [ -n "$query" ]; then
+  tmux new-session -d -s "$query"
+  tmux switch-client -t "$query"
+fi
