@@ -30,6 +30,18 @@
         fi
         grep -qxF 'Include ~/.ssh/config.dotfiles' ~/.ssh/config 2>/dev/null || echo 'Include ~/.ssh/config.dotfiles' >> ~/.ssh/config
       - Ensuring ~/.ssh/config includes config.dotfiles
+    # Ensure ~/.gitconfig is a regular file (not a symlink) that only references our public config.
+    # Prevents `git config --global` or tooling like dd-auth from writing DataDog-specific settings
+    # (e.g. core.hooksPath = /usr/local/dd/...) into the public dotfiles repo.
+    - - |
+        if [[ -L ~/.gitconfig ]]; then
+          rm ~/.gitconfig
+        fi
+        grep -qF 'path = ~/.gitconfig.dotfiles' ~/.gitconfig 2>/dev/null || cat >> ~/.gitconfig <<'INCL'
+        [include]
+          path = ~/.gitconfig.dotfiles
+        INCL
+      - Ensuring ~/.gitconfig includes .gitconfig.dotfiles
     # Enable macOS press-and-hold accent popup in Ghostty (disabled by default in terminal apps)
     # Note: popup appears after one key repeat (Ghostty limitation — InitialKeyRepeat has no effect)
     - - |
@@ -107,7 +119,7 @@
     ~/.dotfiles: ~/git/dotfiles
     ~/.gitattributes: git/.gitattributes
     ~/.gitignore: git/.gitignore
-    ~/.gitconfig: git/.gitconfig
+    ~/.gitconfig.dotfiles: git/.gitconfig
     ~/.ssh/config.dotfiles: ssh/config
     ~/.zshrcdotfiles: shell/.zshrc
     ~/.p10k.zsh: shell/.p10k.zsh
