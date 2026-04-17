@@ -17,6 +17,9 @@ brew "opencode"
 cask "claude-code@latest"
 cask "codex"
 
+# ── AI Agent Sandbox ─────────────────────────────────────────────────
+brew "nono"
+
 # ── Search & File Tools ──────────────────────────────────────────────
 brew "ripgrep"
 brew "ripgrep-all"
