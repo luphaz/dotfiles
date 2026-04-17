@@ -1,15 +1,11 @@
 #!/usr/bin/env zsh
 
-# Claude Code (worktree disabled for dotfiles — small repo, direct edits are fine)
+# Claude Code — always in a worktree, always via PR (consistent across repos)
 ccl() {
-  local flags=(--strict-mcp-config)
-  [[ "$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")" != "dotfiles" ]] && flags+=(--worktree)
-  claude "${flags[@]}" "$@"
+  claude --strict-mcp-config --worktree "$@"
 }
 cce() {
-  local flags=()
-  [[ "$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")" != "dotfiles" ]] && flags+=(--worktree)
-  claude "${flags[@]}" "$@"
+  claude --worktree "$@"
 }
 
 # tmux
