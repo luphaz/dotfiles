@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# dotfiles-switch — bounce ~/.dotfiles to main or a worktree. Delegates the heavy
+# lifting (submodules, plugin cloning, config re-linking) to the repo's own
+# `install` script, then reloads tmux + zsh.
+#
+# Usage:
+#   dotfiles-switch               # interactive fzf (main + all worktrees);
+#                                 # skipped automatically if 0 worktrees (→ main)
+#   dotfiles-switch main          # git pull main, then install
+#   dotfiles-switch <name>        # install from .claude/worktrees/<name>
+#
+# Side effects (in order):
+#   1. target=main: git pull --ff-only  (worktrees skip the pull)
+#   2. SKIP_BREW=1 <target>/install
+#        → ln -sfn <target> ~/.dotfiles
+#        → git submodule update --init --recursive
+#        → dotbot: clones oh-my-zsh custom plugins/theme, relinks ~/.tmux.conf, etc.
+#        → (Brewfile skipped via SKIP_BREW=1)
+#   3. tmux source-file <target>/tmux/.tmux.conf  (if in tmux)
+#   4. tmux send-keys 'source ~/.zshrc' to idle zsh panes in the current session
+#
+# Caveat on step 4: panes whose pane_current_command is "zsh" are assumed idle.
+# If you have text typed at the prompt without pressing Enter, send-keys will
+# concatenate onto it before the Enter — press Ctrl+U to recover.
+set -eu
+
+DOTFILES="$HOME/git/dotfiles"
+WT_DIR="$DOTFILES/.claude/worktrees"
+
+list_worktrees() {
+  [ -d "$WT_DIR" ] || return 0
+  find "$WT_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2>/dev/null | sort
+}
+
+target="${1:-}"
+
+if [ -z "$target" ]; then
+  wts=$(list_worktrees || true)
+  if [ -z "$wts" ]; then
+    target="main"
+  else
+    if ! command -v fzf >/dev/null 2>&1; then
+      echo "fzf required for interactive selection" >&2
+      exit 1
+    fi
+    current=$(readlink "$HOME/.dotfiles" 2>/dev/null || true)
+    current_name="main"
+    case "$current" in "$WT_DIR"/*) current_name="${current##*/}" ;; esac
+    options=$(printf 'main\n%s\n' "$wts")
+    target=$(
+      printf '%s\n' "$options" |
+        awk -v cur="$current_name" '{ mark = ($0==cur) ? "● " : "  "; print mark $0 }' |
+        fzf --prompt='dotfiles › ' --height=30% --no-sort --header='select target (● current)' |
+        sed 's/^..//'
+    ) || exit 1
+  fi
+fi
+
+if [ "$target" = "main" ]; then
+  new_path="$DOTFILES"
+else
+  new_path="$WT_DIR/$target"
+  if [ ! -d "$new_path" ]; then
+    echo "no such worktree: $target" >&2
+    exit 1
+  fi
+fi
+
+echo "→ switching ~/.dotfiles to ${target}"
+
+if [ "$target" = "main" ]; then
+  echo "  git pull..."
+  (cd "$new_path" && git pull --ff-only 2>&1 | sed 's/^/    /') || echo "    (pull failed — continuing)"
+fi
+
+echo "  running install (SKIP_BREW=1)..."
+if SKIP_BREW=1 "$new_path/install" 2>&1 | sed 's/^/    /'; then
+  :
+else
+  echo "  install failed — check output above" >&2
+  exit 1
+fi
+
+if [ -n "${TMUX:-}" ]; then
+  if tmux source-file "$new_path/tmux/.tmux.conf" 2>/dev/null; then
+    echo "  tmux: sourced $new_path/tmux/.tmux.conf"
+  else
+    echo "  tmux: source-file failed (continuing)"
+  fi
+
+  reloaded=0
+  while read -r pane_id pane_cmd; do
+    [ "$pane_cmd" = "zsh" ] || continue
+    tmux send-keys -t "$pane_id" "source ~/.zshrc" Enter 2>/dev/null && reloaded=$((reloaded + 1))
+  done < <(tmux list-panes -s -F '#{pane_id} #{pane_current_command}' 2>/dev/null)
+  echo "  zsh: reloaded $reloaded idle pane(s)"
+
+  # Status-bar summary — visible even when invoked via run-shell -b.
+  tmux display-message "dotfiles: → $target (reloaded $reloaded zsh pane(s))" 2>/dev/null || true
+fi
+
+echo "all green"

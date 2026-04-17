@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# claude-cwd-run — resolve Claude's cwd for a tmux pane, then execute an action there.
+#
+# Usage: claude-cwd-run <action> [PANE_ID]
+#   action: shell | open-pr | open-branch
+#   PANE_ID defaults to $TMUX_PANE
+#
+# Thin wrapper around claude-pane-cwd so tmux bindings stay compact.
+# Fzf (when needed) happens inside claude-pane-cwd; when exactly one Claude
+# matches, no fzf, no popup flash — safe under tmux run-shell -b.
+set -eu
+
+action="${1:?usage: claude-cwd-run <shell|open-pr|open-branch> [PANE_ID]}"
+pane_id="${2:-${TMUX_PANE:-}}"
+
+p=$("$HOME/.dotfiles/shell/bin/claude-pane-cwd" "$pane_id")
+[ -n "$p" ] || exit 1
+cd "$p" || exit 1
+
+case "$action" in
+  shell)       exec "${SHELL:-zsh}" ;;
+  open-pr)     exec "$HOME/.dotfiles/shell/bin/open-pr" ;;
+  open-branch) exec "$HOME/.dotfiles/shell/bin/open-branch" ;;
+  *)           echo "unknown action: $action" >&2; exit 1 ;;
+esac

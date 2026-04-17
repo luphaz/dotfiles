@@ -16,7 +16,9 @@ git submodule update --init --recursive
 
 "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-git -c "${CONFIG}" "${@}"
 
-# Brewfile (macOS only — contains casks and taps not available on Linux)
-if [[ "$(uname)" == "Darwin" ]]; then
+# Brewfile (macOS only — contains casks and taps not available on Linux).
+# Skipped when SKIP_BREW=1 is set (e.g. by dotfiles-switch during a worktree bounce,
+# where the Brewfile would be a no-op anyway but adds seconds of check overhead).
+if [[ "$(uname)" == "Darwin" && "${SKIP_BREW:-0}" != "1" ]]; then
   "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-brew -c <(echo '- brewfile: [Brewfile]') "${@}"
 fi
