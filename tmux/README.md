@@ -39,7 +39,7 @@ doesn't track.
 
 | Binding | Action | Concrete use |
 |---|---|---|
-| `Ctrl+t` / `t` | Open a shell popup in Claude's worktree | "I want to run `git diff` / `go test` / `rg` against what Claude just changed, without disturbing Claude." |
+| `Ctrl+t` / `t` | Open a shell in a 40% bottom split at Claude's worktree | "I want to run `git diff` / `go test` / `rg` against what Claude just changed, without disturbing Claude — and scroll through the output." |
 | `Ctrl+p` / `p` | Open the PR for Claude's branch in the browser | Mid-review: flip from terminal to the PR tab without mousing around. |
 | `Ctrl+o` / `o` | Open Claude's branch on GitHub (tree view) | Share the branch link, eyeball the file layout on GitHub, or open on mobile. |
 
