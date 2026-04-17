@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# claude-pane-cwd — resolve the cwd of the Claude Code process running in a tmux pane.
+#
+# Usage:
+#   claude-pane-cwd [PANE_ID]           # print cwd (fzf picker if >1 Claude)
+#   claude-pane-cwd --count [PANE_ID]   # print count of unique candidate cwds (no fzf)
+#     PANE_ID defaults to $TMUX_PANE
+#
+# Behavior (print mode):
+#   0 Claude in the pane's tree → fallback to $PWD
+#   1 Claude                    → print its cwd (from ~/.claude/sessions/<pid>.json)
+#   >1 Claude (dedup by cwd)    → fzf picker → print selected cwd
+#
+# --count mode prints just the integer (0/1/2+) so tmux if-shell can route between
+# run-shell (direct) and display-popup (fzf needed). Never blocks or fzf's.
+#
+# Intended to be invoked from inside a tmux display-popup (fzf needs a tty).
+# Exit 1 only if the user cancels fzf.
+
+set -u
+
+count_mode=0
+if [[ "${1:-}" == "--count" ]]; then
+  count_mode=1
+  shift
+fi
+
+pane_id="${1:-${TMUX_PANE:-}}"
+
+fallback() {
+  if [[ "$count_mode" == "1" ]]; then
+    echo "0"
+    exit 0
+  fi
+  # Prefer the invoking tmux pane's current_path over $PWD — $PWD inside a
+  # display-popup is the popup's initial cwd (often $HOME), not where the user
+  # actually pressed the key.
+  local fb_path=""
+  if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    fb_path=$(tmux display-message -p -t "${pane_id:-}" '#{pane_current_path}' 2>/dev/null || true)
+  fi
+  [[ -n "$fb_path" ]] || fb_path="$PWD"
+  printf '%s\n' "$fb_path"
+  exit 0
+}
+
+[[ -z "$pane_id" ]] && fallback
+command -v tmux >/dev/null 2>&1 || fallback
+
+pane_pid=$(tmux display-message -p -t "$pane_id" '#{pane_pid}' 2>/dev/null || true)
+[[ -z "$pane_pid" ]] && fallback
+
+claude_pids=()
+while IFS= read -r pid; do
+  [[ -n "$pid" ]] && claude_pids+=("$pid")
+done < <(
+  ps -A -o pid=,ppid=,comm= | awk -v root="$pane_pid" '
+    {
+      pid = $1; ppid_ = $2
+      $1 = ""; $2 = ""
+      cmd = $0
+      sub(/^ +/, "", cmd)
+      sub(/.*\//, "", cmd)
+      PPID[pid] = ppid_
+      CMD[pid]  = cmd
+      order[NR] = pid
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        pid = order[i]
+        cur = pid
+        for (j = 0; j < 1024; j++) {
+          if (!(cur in PPID)) break
+          cur = PPID[cur]
+          if (cur == root) {
+            if (CMD[pid] == "claude") print pid
+            break
+          }
+          if (cur == 0 || cur == 1) break
+        }
+      }
+    }
+  '
+)
+
+candidates=()
+for pid in "${claude_pids[@]}"; do
+  [[ -f "$HOME/.claude/sessions/$pid.json" ]] || continue
+  kill -0 "$pid" 2>/dev/null || continue
+  candidates+=("$pid")
+done
+
+[[ ${#candidates[@]} -eq 0 ]] && fallback
+
+entries=$(
+  for pid in "${candidates[@]}"; do
+    jq -r --arg pid "$pid" '
+      [$pid, (.startedAt // "1970-01-01T00:00:00Z"), (.cwd // "")]
+      | @tsv
+    ' "$HOME/.claude/sessions/$pid.json" 2>/dev/null
+  done |
+  awk -F'\t' '
+    $3 != "" {
+      if (!(($3) in best_t) || $2 > best_t[$3]) { best_t[$3] = $2; best[$3] = $0 }
+    }
+    END { for (k in best) print best[k] }
+  '
+)
+
+[[ -z "$entries" ]] && fallback
+
+count=$(printf '%s\n' "$entries" | awk 'END{print NR}')
+
+if [[ "$count_mode" == "1" ]]; then
+  echo "$count"
+  exit 0
+fi
+
+if [[ "$count" -eq 1 ]]; then
+  printf '%s\n' "$entries" | awk -F'\t' '{print $3}'
+  exit 0
+fi
+
+if ! command -v fzf >/dev/null 2>&1; then
+  printf '%s\n' "$entries" | head -1 | awk -F'\t' '{print $3}'
+  exit 0
+fi
+
+picker_lines=$(
+  printf '%s\n' "$entries" | while IFS=$'\t' read -r pid _started cwd; do
+    branch=$(git -C "$cwd" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || echo '-')
+    short="${cwd/#$HOME/~}"
+    printf '%s\t%s\t%s\n' "$pid" "$branch" "$short"
+  done
+)
+
+selected=$(
+  printf '%s\n' "$picker_lines" |
+    fzf --delimiter=$'\t' --with-nth=2.. \
+        --height=40% --reverse --no-sort \
+        --prompt='Claude › ' \
+        --header=$'branch\tcwd'
+) || exit 1
+
+sel_pid=$(printf '%s' "$selected" | cut -f1)
+printf '%s\n' "$entries" | awk -F'\t' -v p="$sel_pid" '$1==p {print $3}'
