@@ -116,7 +116,9 @@
     - ~/Library/Application Support/xbar/plugins
 
 - link:
-    ~/.dotfiles: ~/git/dotfiles
+    # Note: ~/.dotfiles symlink is created by the install script (ln -sfn "${BASEDIR}")
+    # so that worktree-based installs (dotfiles-switch) point at the right checkout.
+    # Don't re-add it as a dotbot link here — that hardcodes the target to main.
     ~/.gitattributes: git/.gitattributes
     ~/.gitignore: git/.gitignore
     ~/.gitconfig.dotfiles: git/.gitconfig
