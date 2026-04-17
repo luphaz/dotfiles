@@ -1,16 +1,35 @@
 #!/usr/bin/env bash
 # Open the GitHub PR for the current branch in the browser.
+# Falls back to the "create PR" compare page if none exists.
 # Falls back to xdg-open on Linux.
 set -euo pipefail
 
-branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
-[[ "$branch" == "main" || "$branch" == "master" ]] && exit 0
+notify() {
+  if [[ -n "${TMUX:-}" ]]; then
+    tmux display-message "open-pr: $1"
+  else
+    printf 'open-pr: %s\n' "$1" >&2
+  fi
+}
 
-url=$(gh pr view "$branch" --json url --jq .url 2>/dev/null) || exit 0
-[[ -z "$url" ]] && exit 0
+open_url() {
+  if command -v open &>/dev/null; then
+    open "$1"
+  elif command -v xdg-open &>/dev/null; then
+    xdg-open "$1"
+  fi
+}
 
-if command -v open &>/dev/null; then
-  open "$url"
-elif command -v xdg-open &>/dev/null; then
-  xdg-open "$url"
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || { notify "not on a branch"; exit 0; }
+
+if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+  notify "on $branch — no PR context"
+  exit 0
+fi
+
+if url=$(gh pr view "$branch" --json url --jq .url 2>/dev/null) && [[ -n "$url" ]]; then
+  open_url "$url"
+else
+  notify "no PR for $branch — opening compare page"
+  gh pr create --web --head "$branch" 2>/dev/null || gh browse --branch "$branch"
 fi
