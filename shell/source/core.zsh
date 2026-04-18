@@ -8,6 +8,14 @@ cce() {
   claude --worktree "$@"
 }
 
+# Same as ccl/cce, wrapped in the nono cc-luphaz sandbox profile.
+nl() {
+  nono run --profile cc-luphaz -- claude --strict-mcp-config --worktree "$@"
+}
+ne() {
+  nono run --profile cc-luphaz -- claude --worktree "$@"
+}
+
 # tmux
 alias tl='tmux list-sessions -F "#{session_activity} #{session_name}: #{session_windows} windows (created #{t:session_created})#{?session_attached, (attached),}" 2>/dev/null | sort -rn | cut -d" " -f2-'
 
