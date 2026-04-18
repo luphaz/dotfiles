@@ -112,7 +112,6 @@
 - create:
     - ~/.config/nvim
     - ~/.config/ghostty
-    - ~/.config/nono/profiles
     - ~/Library/Application Support/xbar/plugins
 
 - link:
@@ -128,12 +127,6 @@
     ~/.tmux.conf: tmux/.tmux.conf
     ~/.config/ghostty/config: ghostty/config
     ~/.config/nvim/init.lua: nvim/init.lua
-    # nono profiles linked per-file (glob pattern required) so workspaces-dotfiles
-    # can overlay its own profiles (e.g. cc-dd.json extends cc-luphaz) in the same dir.
-    ~/.config/nono/profiles:
-      path: nono/profiles/*.json
-      glob: true
-      force: true
     ~/Library/Application Support/xbar/plugins:
       path: xbar/plugins
       glob: true

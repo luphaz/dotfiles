@@ -25,6 +25,7 @@ default = simple
 [core]
 excludesFile = ~/.gitignore
 attributesfile = ~/.gitattributes
+hooksPath = ~/.dotfiles/git/hooks
 
 [commit]
 # gpgsign enabled via dd-dotfiles overlay (requires signing key)

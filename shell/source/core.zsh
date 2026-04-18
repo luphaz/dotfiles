@@ -1,19 +1,14 @@
 #!/usr/bin/env zsh
 
-# Claude Code — always in a worktree, always via PR (consistent across repos)
+# Claude Code — always in a worktree, always via PR (consistent across repos).
+# ccl: trusted full-write work. cce: read-only exploration — plan mode means
+# no Edit/Write/destructive Bash; to go further claude calls ExitPlanMode
+# which prompts for approval.
 ccl() {
   claude --strict-mcp-config --worktree "$@"
 }
 cce() {
-  claude --worktree "$@"
-}
-
-# Same as ccl/cce, wrapped in the nono cc-luphaz sandbox profile.
-nl() {
-  nono run --profile cc-luphaz -- claude --strict-mcp-config --worktree "$@"
-}
-ne() {
-  nono run --profile cc-luphaz -- claude --worktree "$@"
+  claude --permission-mode plan --worktree "$@"
 }
 
 # tmux
