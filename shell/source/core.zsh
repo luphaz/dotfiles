@@ -19,6 +19,20 @@ ne() {
 # tmux
 alias tl='tmux list-sessions -F "#{session_activity} #{session_name}: #{session_windows} windows (created #{t:session_created})#{?session_attached, (attached),}" 2>/dev/null | sort -rn | cut -d" " -f2-'
 
+# Attach to the most recently used tmux session, or create "main" if none exist.
+# Sort by session_last_attached — attach-session without -t uses creation order, not recency.
+ta() {
+  [[ -n "$TMUX" ]] && { echo "already in tmux: $(tmux display-message -p '#S')" >&2; return 1; }
+  if tmux list-sessions &>/dev/null; then
+    local last
+    last=$(tmux list-sessions -F '#{session_last_attached} #{session_name}' \
+      | sort -rn | head -1 | awk '{print $2}')
+    tmux attach-session -t "$last"
+  else
+    tmux new-session -s main
+  fi
+}
+
 ts() {
   local session
   session=$(tmux-ls \
