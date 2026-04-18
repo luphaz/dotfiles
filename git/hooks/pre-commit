@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Validate staged nono profile JSON on commit. Self-scopes: the grep
+# below only matches when a repo stages nono/profiles/*.json, so it's
+# a silent no-op in any other repo.
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E 'nono/profiles/.*\.json$' || true)
+[[ -z "$staged" ]] && exit 0
+
+if ! command -v nono >/dev/null 2>&1; then
+  echo "pre-commit: nono not in PATH — skipping profile validation"
+  exit 0
+fi
+
+ec=0
+for p in $staged; do
+  if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$p" 2>/tmp/pc-json.err; then
+    echo "pre-commit: $p — invalid JSON"
+    cat /tmp/pc-json.err
+    ec=1
+    continue
+  fi
+  if ! nono policy validate "$p" 2>/tmp/pc-nono.err | grep -q 'Result: valid'; then
+    echo "pre-commit: $p — nono policy validate failed:"
+    grep -iE 'err|error' /tmp/pc-nono.err | head -5 || cat /tmp/pc-nono.err
+    ec=1
+  fi
+done
+rm -f /tmp/pc-json.err /tmp/pc-nono.err
+exit $ec

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# After a merge:
+#   1. In the dotfiles repo: if ~/.dotfiles points at a worktree whose
+#      branch is merged into main AND gone from origin, bounce it back
+#      to main first so pruning doesn't dangle the active symlink.
+#   2. Always run the worktree prune (safe no-op where nothing matches).
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+if [[ "$repo_root" == "$HOME/git/dotfiles" ]]; then
+  active=$(readlink "$HOME/.dotfiles" 2>/dev/null || true)
+  if [[ "$active" == "$repo_root/.claude/worktrees/"* ]]; then
+    branch=$(git -C "$active" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [[ -n "$branch" ]] \
+       && git merge-base --is-ancestor "$branch" main 2>/dev/null \
+       && ! git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+      echo "post-merge: ~/.dotfiles on merged worktree '${active##*/}' — switching to main"
+      "$HOME/.dotfiles/shell/bin/dotfiles-switch" main || true
+    fi
+  fi
+fi
+
+bin="$HOME/.dotfiles/shell/bin/dotfiles-prune-worktrees"
+[[ -x "$bin" ]] && "$bin" 2>&1 | sed 's/^/post-merge: /' || true

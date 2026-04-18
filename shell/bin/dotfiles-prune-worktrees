@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Prune worktrees under .claude/worktrees/ whose branch is merged into
+# the repo's default branch AND has been deleted on origin. Safe for any
+# repo that uses the .claude/worktrees/ convention.
+#
+# Uncommitted / unmerged worktrees are skipped — the pruner never drops
+# work that isn't already in main + origin.
+#
+# Invoked manually (`dotfiles-prune-worktrees`) or from the post-merge
+# hook in $HOME/.dotfiles/git/hooks/post-merge.
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "not a git repo"; exit 0; }
+default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||') || default_branch=main
+dry_run=0
+[[ "${1:-}" == "--dry-run" ]] && dry_run=1
+
+# Porcelain worktree list: alternating `worktree <path>` and `branch refs/heads/<name>` lines.
+git worktree list --porcelain | awk '
+  /^worktree /{ path=$2 }
+  /^branch refs\/heads\// { sub("refs/heads/", "", $2); print path"|"$2 }
+' | while IFS='|' read -r path branch; do
+  [[ "$path" == *"/.claude/worktrees/"* ]] || continue
+  [[ "$branch" == "$default_branch" ]] && continue
+
+  # Has the branch been merged into default? Skip if not.
+  git merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null || {
+    continue
+  }
+  # Is the branch gone from origin? (Covers the "PR merged + branch deleted" case.)
+  if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+    continue
+  fi
+  # Skip if the worktree has uncommitted changes — never discard live work.
+  if [[ -n "$(git -C "$path" status --porcelain 2>/dev/null)" ]]; then
+    echo "prune: skipping $path — uncommitted changes"
+    continue
+  fi
+
+  if [[ $dry_run -eq 1 ]]; then
+    echo "prune (dry-run): would drop $path (branch $branch merged + remote gone)"
+  else
+    echo "prune: $path (branch $branch merged + remote gone)"
+    git worktree remove "$path"
+    git branch -D "$branch" >/dev/null 2>&1 || true
+  fi
+done
