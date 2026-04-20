@@ -58,6 +58,17 @@ cdr() { cd "$(cd "$(git rev-parse --git-common-dir)/.." && pwd)" }
 
 alias ez="fb ~/.dotfiles"
 
+# CMD+K → clear screen + scrollback, matching the tmux M-k binding.
+# Ghostty forwards CMD+K as \ek (Alt+K). Inside tmux, .tmux.conf intercepts
+# M-k at the root table so zsh never sees it; outside tmux, this widget fires
+# and emits the ANSI sequences (ED + erase-scrollback) that Ghostty honors.
+_cmd_k_clear() {
+  printf '\e[H\e[2J\e[3J'
+  zle reset-prompt
+}
+zle -N _cmd_k_clear
+bindkey '\ek' _cmd_k_clear
+
 kj() {
   jobs
   kill %
