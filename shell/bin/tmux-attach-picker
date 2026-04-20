@@ -47,6 +47,7 @@ set +e
 result=$(
   printf '%s\n' "$entries" | fzf \
     --ansi \
+    --cycle \
     --reverse \
     --no-sort \
     --delimiter=$'\t' \
