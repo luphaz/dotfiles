@@ -22,6 +22,42 @@
         [[ -f ~/.zshrcdotfiles ]] && source ~/.zshrcdotfiles
         HOOK
       - Hooking zshrcdotfiles into .zshrc
+    # Idempotently insert the tmux-attach-picker block BEFORE the p10k instant
+    # prompt. Must run before p10k because the instant-prompt handoff breaks
+    # fzf's tty grab; on session pick we exec tmux and skip p10k entirely.
+    # Detects the ### tmux-picker marker to skip when already installed. Block
+    # is staged in a tempfile because BSD awk (macOS) rejects multi-line -v.
+    - - |
+        if ! grep -qF '### tmux-picker' ~/.zshrc 2>/dev/null; then
+          bf=$(mktemp)
+          cat > "$bf" <<'BLOCK'
+        ### tmux-picker — runs BEFORE p10k's instant prompt so fzf has a clean
+        ### tty. On session pick, exec tmux (no p10k startup cost). SHLVL=1
+        ### guard makes subshells and `exec zsh` skip naturally.
+        if [[ -z "$TMUX" && $SHLVL -eq 1 && -o interactive && -t 0 && -t 1 ]]; then
+          export PATH="$HOME/.dotfiles/shell/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+          if command -v tmux-attach-picker >/dev/null 2>&1; then
+            _tmux_choice=$(tmux-attach-picker)
+            [[ -n "$_tmux_choice" ]] && exec tmux attach -t "$_tmux_choice"
+            unset _tmux_choice
+          fi
+        fi
+        ### tmux-picker — END
+        BLOCK
+          if grep -qF '# p10k instant prompt' ~/.zshrc 2>/dev/null; then
+            awk -v bf="$bf" '
+              /^# p10k instant prompt/ && !done {
+                while ((getline line < bf) > 0) print line
+                close(bf); print ""; done=1
+              }
+              { print }
+            ' ~/.zshrc > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
+          else
+            { cat "$bf"; printf '\n'; cat ~/.zshrc; } > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
+          fi
+          rm -f "$bf"
+        fi
+      - Inserting tmux-picker before p10k instant prompt (idempotent)
     # Ensure ~/.ssh/config is a regular file (not a symlink) that includes our public SSH config.
     # Grep for the actual Include directive — avoids false-positive on the comment at top of ssh/config.
     - - |
