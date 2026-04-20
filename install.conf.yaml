@@ -8,32 +8,22 @@
 - shell:
     # Bootstrap all submodules: dotbot, dotbot-git, dotbot-brew, .oh-my-zsh
     - [git submodule update --init --recursive, Installing submodules]
-    # Append zshrcdotfiles hook to ~/.zshrc if not already present.
-    # Grep for the actual source line — avoids false-positive on the comment at top of zshrcdotfiles.
+    # Drop-and-recreate our managed bootstrap block at the top of ~/.zshrc.
+    # The block wires in (in order): tmux-attach-picker (must run before p10k
+    # so fzf has a clean tty), p10k instant prompt, and sourcing of
+    # ~/.zshrcdotfiles. Everything between the BEGIN/END markers is owned by
+    # this installer — hand-edits inside will be overwritten on next run.
+    # Migration: also strips legacy unmarked p10k/source and old-style
+    # ### tmux-picker blocks so users upgrading from the previous install
+    # script end up with a single managed section. Block is staged in a
+    # tempfile because BSD awk (macOS) rejects multi-line -v.
     - - |
-        grep -qF 'source ~/.zshrcdotfiles' ~/.zshrc 2>/dev/null || cat >> ~/.zshrc <<'HOOK'
-
-        # p10k instant prompt (must be near top of .zshrc)
-        if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-          source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-        fi
-
-        # Load dotfiles config
-        [[ -f ~/.zshrcdotfiles ]] && source ~/.zshrcdotfiles
-        HOOK
-      - Hooking zshrcdotfiles into .zshrc
-    # Idempotently insert the tmux-attach-picker block BEFORE the p10k instant
-    # prompt. Must run before p10k because the instant-prompt handoff breaks
-    # fzf's tty grab; on session pick we exec tmux and skip p10k entirely.
-    # Detects the ### tmux-picker marker to skip when already installed. Block
-    # is staged in a tempfile because BSD awk (macOS) rejects multi-line -v.
-    - - |
-        if ! grep -qF '### tmux-picker' ~/.zshrc 2>/dev/null; then
-          bf=$(mktemp)
-          cat > "$bf" <<'BLOCK'
-        ### tmux-picker — runs BEFORE p10k's instant prompt so fzf has a clean
-        ### tty. On session pick, exec tmux (no p10k startup cost). SHLVL=1
-        ### guard makes subshells and `exec zsh` skip naturally.
+        bf=$(mktemp)
+        cat > "$bf" <<'BLOCK'
+        ### dotfiles-managed — BEGIN (drop-and-recreated by install.conf.yaml; do not hand-edit)
+        # tmux-picker — runs BEFORE p10k's instant prompt so fzf has a clean
+        # tty. On session pick, exec tmux (no p10k startup cost). SHLVL=1
+        # guard makes subshells and `exec zsh` skip naturally.
         if [[ -z "$TMUX" && $SHLVL -eq 1 && -o interactive && -t 0 && -t 1 ]]; then
           export PATH="$HOME/.dotfiles/shell/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
           if command -v tmux-attach-picker >/dev/null 2>&1; then
@@ -42,22 +32,39 @@
             unset _tmux_choice
           fi
         fi
-        ### tmux-picker — END
-        BLOCK
-          if grep -qF '# p10k instant prompt' ~/.zshrc 2>/dev/null; then
-            awk -v bf="$bf" '
-              /^# p10k instant prompt/ && !done {
-                while ((getline line < bf) > 0) print line
-                close(bf); print ""; done=1
-              }
-              { print }
-            ' ~/.zshrc > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
-          else
-            { cat "$bf"; printf '\n'; cat ~/.zshrc; } > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
-          fi
-          rm -f "$bf"
+
+        # p10k instant prompt (must be near top of .zshrc)
+        if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+          source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
         fi
-      - Inserting tmux-picker before p10k instant prompt (idempotent)
+
+        # Load dotfiles config
+        [[ -f ~/.zshrcdotfiles ]] && source ~/.zshrcdotfiles
+        ### dotfiles-managed — END
+        BLOCK
+        # 1. Strip any existing managed content: new outer markers, plus legacy
+        #    unmarked p10k/source lines and old-style tmux-picker block. One
+        #    trailing blank after each stripped region is absorbed via `eat`.
+        if [ -f ~/.zshrc ]; then
+          awk '
+            /^### dotfiles-managed — BEGIN/ { mg=1; next }
+            mg && /^### dotfiles-managed — END/ { mg=0; eat=1; next }
+            mg { next }
+            /^### tmux-picker — runs/ { tp=1; next }
+            tp && /^### tmux-picker — END/ { tp=0; eat=1; next }
+            tp { next }
+            /^# p10k instant prompt \(must be near top of \.zshrc\)$/ { p10=1; next }
+            p10 && /^\[\[ -f ~\/\.zshrcdotfiles \]\] && source ~\/\.zshrcdotfiles$/ { p10=0; eat=1; next }
+            p10 { next }
+            eat { eat=0; if ($0 == "") next }
+            { print }
+          ' ~/.zshrc > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
+        fi
+        # 2. Prepend the fresh managed block (p10k instant prompt belongs near
+        #    the top of ~/.zshrc, so the whole managed section goes first).
+        { cat "$bf"; printf '\n'; cat ~/.zshrc 2>/dev/null; } > ~/.zshrc.new && mv ~/.zshrc.new ~/.zshrc
+        rm -f "$bf"
+      - Managing bootstrap block at top of ~/.zshrc
     # Ensure ~/.ssh/config is a regular file (not a symlink) that includes our public SSH config.
     # Grep for the actual Include directive — avoids false-positive on the comment at top of ssh/config.
     - - |
