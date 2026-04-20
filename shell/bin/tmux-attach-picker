@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# tmux-attach-picker — offer to attach to a tmux session or stay in the shell.
+#
+# Works both inside and outside tmux:
+#   - Outside ($TMUX unset): prints the chosen session name on stdout so the
+#     caller can `exec tmux attach -t <name>`. Prints nothing if the user
+#     picks "zsh" or aborts.
+#   - Inside ($TMUX set): performs `tmux switch-client -t <name>` directly
+#     and prints nothing (nested `tmux attach` is rejected by tmux).
+#
+# Picker content:
+#   - first row: "zsh" (stay in the current shell/pane, no switch)
+#   - following rows: tmux sessions sorted by session_last_attached (desc)
+#
+# Also supports inline create (like shell/bin/tmux-switch):
+#   - type a name that matches no row + Enter → create that session, attach
+#   - Ctrl+N inside fzf → force-create a session with the typed query
+set -uo pipefail
+
+command -v tmux >/dev/null 2>&1 || exit 0
+command -v fzf  >/dev/null 2>&1 || exit 0
+
+# Dispatch selection: inside tmux, switch in-place; outside, print for caller.
+dispatch() {
+  local name="$1"
+  if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "$name"
+  else
+    printf '%s\n' "$name"
+  fi
+}
+
+HINT='enter: attach/create · type a new name to create · ctrl-n: force create'
+
+# Each row is <tag>\t<name>; fzf hides column 1 via --with-nth=2.
+# Tag distinguishes the "zsh" sentinel from a session literally named "zsh".
+entries=$(
+  printf 'skip\tzsh\n'
+  tmux list-sessions -F '#{session_last_attached} attach	#{session_name}' 2>/dev/null \
+    | sort -rn | cut -d' ' -f2-
+)
+
+# fzf exits 1 on "no match" even when the user pressed Enter or Ctrl+N with a
+# typed query — that's exactly our create-new-session path, so don't treat
+# exit 1 as failure. Only 130 (Ctrl+C / Esc) should abort.
+set +e
+result=$(
+  printf '%s\n' "$entries" | fzf \
+    --ansi \
+    --reverse \
+    --no-sort \
+    --delimiter=$'\t' \
+    --with-nth=2.. \
+    --print-query \
+    --expect=ctrl-n \
+    --prompt='Start: ' \
+    --header="$HINT" \
+    --bind "change:transform-header:[ \"\$FZF_MATCH_COUNT\" = 0 ] && [ -n \"\$FZF_QUERY\" ] && printf '\033[33m+ new session: %s\033[0m — enter to create' \"\$FZF_QUERY\" || printf '%s' '$HINT'" \
+    --preview='[ {1} = attach ] && tmux capture-pane -ep -t {2} 2>/dev/null || echo "(stays in zsh — no tmux)"' \
+    --preview-window=right:60%
+)
+rc=$?
+set -e
+[ "$rc" -eq 130 ] && exit 0
+[ "$rc" -ge 2  ] && exit 0
+
+query=$(printf     '%s\n' "$result" | sed -n '1p')
+key=$(printf       '%s\n' "$result" | sed -n '2p')
+selection=$(printf '%s\n' "$result" | sed -n '3p')
+
+create_and_dispatch() {
+  local name="$1"
+  tmux new-session -d -s "$name" 2>/dev/null || true
+  dispatch "$name"
+}
+
+if [ "$key" = "ctrl-n" ]; then
+  [ -z "$query" ] && exit 0
+  create_and_dispatch "$query"
+  exit 0
+fi
+
+if [ -n "$selection" ]; then
+  tag=$(printf  '%s' "$selection" | awk -F'\t' '{print $1}')
+  name=$(printf '%s' "$selection" | awk -F'\t' '{print $2}')
+  case "$tag" in
+    skip)   exit 0 ;;
+    attach) dispatch "$name"; exit 0 ;;
+  esac
+fi
+
+# Typed query with no match + Enter → create.
+[ -n "$query" ] && create_and_dispatch "$query"
