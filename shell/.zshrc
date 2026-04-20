@@ -19,13 +19,13 @@ export HOMEBREW_BIN="${HOMEBREW_PREFIX}/bin"
 [[ "$(uname)" == "Darwin" ]] && export PATH="${HOMEBREW_PREFIX}/opt/coreutils/libexec/gnubin:${PATH}"
 
 # Use 1Password as the SSH agent (macOS only).
-# ~/.ssh/agent-link is a stable symlink to the 1Password socket — avoids a
+# ~/.ssh/ssh_auth_sock is a stable symlink to the 1Password socket — avoids a
 # path with spaces ("Group Containers") that tmux's update-environment and
 # some tools (e.g. workspaces CLI's Go SSH client) don't handle reliably.
 if [[ "$(uname)" == "Darwin" ]]; then
-  [[ "$(readlink "${HOME}/.ssh/agent-link" 2>/dev/null)" == "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" ]] \
-    || ln -sf "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "${HOME}/.ssh/agent-link"
-  export SSH_AUTH_SOCK="${HOME}/.ssh/agent-link"
+  [[ "$(readlink "${HOME}/.ssh/ssh_auth_sock" 2>/dev/null)" == "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" ]] \
+    || ln -sf "${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" "${HOME}/.ssh/ssh_auth_sock"
+  export SSH_AUTH_SOCK="${HOME}/.ssh/ssh_auth_sock"
 fi
 
 # Go
