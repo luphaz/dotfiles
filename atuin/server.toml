@@ -11,7 +11,9 @@ port = 8888
 open_registration = true
 
 # atuin-server historically defaulted to Postgres; declare the SQLite URI explicitly.
-db_uri = "sqlite:///Users/matthieu.bono/.local/share/atuin-server/server.db"
+# `?mode=rwc` = read-write-create: sqlx opens the file if present, otherwise
+# creates it. Without it sqlx errors code 14 on a missing server.db.
+db_uri = "sqlite:///Users/matthieu.bono/.local/share/atuin-server/server.db?mode=rwc"
 
 # Max history entries per sync request. Default (8192) is fine.
 # page_size = 8192
