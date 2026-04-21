@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# atuin-init — seed an atuin client against an already-reachable server.
+#
+# Run once per machine AFTER `atuin register` (on the server host) and
+# `atuin login -u <user> -p <pw>` + `atuin key <key>` (on every other host).
+# This script just covers the "now slurp my existing shell history and push
+# it to the server" step, which atuin doesn't do automatically on login —
+# its hook only captures commands typed from that point forward, so legacy
+# ~/.zsh_history lives offline until you explicitly import.
+#
+# Idempotent: re-running skips duplicate entries (atuin dedupes on hash).
+# Not wired into ./install on purpose — registration/login are interactive
+# and per-machine, so the installer can't do them for you.
+
+set -euo pipefail
+
+if ! command -v atuin >/dev/null 2>&1; then
+  echo "atuin-init: 'atuin' not on PATH. Install it first: brew install atuin" >&2
+  exit 1
+fi
+
+# Bail early if the client isn't logged in — otherwise `sync` errors with
+# "you are not logged in" and the legacy history never makes it off-disk.
+if ! atuin status 2>&1 | grep -q '^Username:'; then
+  cat >&2 <<'HINT'
+atuin-init: client is not logged in. Before running this, do:
+  atuin register -u <user> -e <email> -p <pw>      # on the server machine (Mac)
+  atuin login    -u <user> -p <pw>                 # everywhere else
+  atuin key <key-from-1password>                   # everywhere except the server
+HINT
+  exit 1
+fi
+
+echo "== atuin sync (push whatever's already in the local store) =="
+atuin sync -f
+
+echo "== atuin import auto (slurp legacy ~/.zsh_history / .bash_history / etc.) =="
+atuin import auto
+
+echo "== atuin sync (push the imported history) =="
+atuin sync -f
+
+echo "== atuin status =="
+atuin status
