@@ -2,11 +2,12 @@
 brew "bash"
 brew "coreutils"
 brew "fzf"
+brew "fd"      # modern find — backs FZF_DEFAULT_COMMAND, respects .gitignore
 brew "direnv"
 brew "bat"
 brew "bat-extras"
-brew "zsh-autosuggestions"
-brew "zsh-syntax-highlighting"
+brew "zoxide"  # smart cd (frecency-ranked): `z <partial>` jumps to best match
+brew "atuin"   # sqlite shell history with fuzzy Ctrl+R + optional cross-machine sync
 brew "tmux"
 
 # ── Editors & AI Coding ──────────────────────────────────────────────

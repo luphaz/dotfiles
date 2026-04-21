@@ -145,6 +145,9 @@
     ~/.dotfiles/.oh-my-zsh/custom/plugins/fast-syntax-highlighting:
       url: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
       description: "oh my zsh - fast-syntax-highlighting"
+    ~/.dotfiles/.oh-my-zsh/custom/plugins/zsh-autosuggestions:
+      url: https://github.com/zsh-users/zsh-autosuggestions.git
+      description: "oh my zsh - zsh-autosuggestions"
     ~/.dotfiles/.oh-my-zsh/custom/plugins/forgit:
       url: https://github.com/wfxr/forgit.git
       description: "oh my zsh - forgit"
