@@ -1,0 +1,28 @@
+# atuin client config on this Mac — syncs against the local atuin-server launchd
+# agent (sh.atuin.server). Remote hosts have their own config.toml pointing at
+# localhost:8888 that reaches this server via SSH RemoteForward.
+
+sync_address = "http://127.0.0.1:8888"
+
+# Sync automatically; atuin fails silently to local sqlite if the server is
+# unreachable, so this never blocks the shell even when the daemon is down.
+auto_sync = true
+sync_frequency = "5m"
+
+# Filter mode for Ctrl+R: "host" restricts to this machine by default.
+# Cycle with Ctrl+R inside the search popup to toggle global/session/directory.
+filter_mode = "host"
+filter_mode_shell_up_key_binding = "session"
+
+# Style: compact search UI. "full" if you want the multi-line preview.
+style = "compact"
+
+# Search mode: fuzzy is a better default than the historical prefix search.
+search_mode = "fuzzy"
+
+# Don't record these commands (same pattern as HISTIGNORE).
+history_filter = [
+  "^ ",         # leading-space convention (compatible with HIST_IGNORE_SPACE)
+  "^atuin login",
+  "^atuin register",
+]

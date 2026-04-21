@@ -1,0 +1,17 @@
+# atuin-server — runs on this Mac as a launchd agent (sh.atuin.server).
+# Binds 127.0.0.1 only; remote hosts reach it exclusively via `ssh -R 8888:127.0.0.1:8888`.
+# SQLite backend so no Postgres infra; the DB is just a file under ~/.local/share/atuin-server/.
+
+host = "127.0.0.1"
+port = 8888
+
+# open_registration stays true until all personal machines have registered once,
+# then flip to false. Loopback-only binding + SSH-tunnel-only exposure makes the
+# attack surface basically nil either way, but flipping this is cheap hygiene.
+open_registration = true
+
+# atuin-server historically defaulted to Postgres; declare the SQLite URI explicitly.
+db_uri = "sqlite:///Users/matthieu.bono/.local/share/atuin-server/server.db"
+
+# Max history entries per sync request. Default (8192) is fine.
+# page_size = 8192

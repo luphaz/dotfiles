@@ -133,6 +133,43 @@
           fi
         fi
       - Installing nono (Linux .deb, pinned)
+    # atuin-server launchd agent (macOS only).
+    # Binds 127.0.0.1:8888; remote hosts reach it via SSH RemoteForward. Rendered
+    # at install time so the binary path matches whatever brew gave us (ARM vs
+    # Intel) without a committed-repo hardcode.
+    # One-time after first install: `atuin register -u luphaz ...` against
+    # http://127.0.0.1:8888, then `atuin login` on each client machine.
+    - - |
+        if [[ "$(uname)" == "Darwin" ]] && command -v atuin >/dev/null 2>&1; then
+          mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/atuin-server"
+          atuin_bin="$(command -v atuin)"
+          plist="$HOME/Library/LaunchAgents/sh.atuin.server.plist"
+          cat > "$plist" <<PLIST
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key><string>sh.atuin.server</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>${atuin_bin}</string>
+            <string>server</string>
+            <string>start</string>
+          </array>
+          <key>RunAtLoad</key><true/>
+          <key>KeepAlive</key><true/>
+          <key>StandardOutPath</key><string>/tmp/atuin-server.out.log</string>
+          <key>StandardErrorPath</key><string>/tmp/atuin-server.err.log</string>
+        </dict>
+        </plist>
+        PLIST
+          # Reload idempotently: bootout the old agent (ignore failure if not
+          # loaded), then bootstrap the fresh plist. Modern launchctl API —
+          # `load -w` still works but is deprecated on Sequoia+.
+          launchctl bootout "gui/$(id -u)/sh.atuin.server" 2>/dev/null || true
+          launchctl bootstrap "gui/$(id -u)" "$plist"
+        fi
+      - Install atuin-server launchd agent (macOS)
 
 # Clone oh-my-zsh plugins into ~/.dotfiles/.oh-my-zsh/custom/ (oh-my-zsh itself is a submodule)
 - git:
@@ -158,6 +195,7 @@
 - create:
     - ~/.config/nvim
     - ~/.config/ghostty
+    - ~/.config/atuin
     - ~/Library/Application Support/xbar/plugins
 
 - link:
@@ -173,6 +211,8 @@
     ~/.tmux.conf: tmux/.tmux.conf
     ~/.config/ghostty/config: ghostty/config
     ~/.config/nvim/init.lua: nvim/init.lua
+    ~/.config/atuin/server.toml: atuin/server.toml
+    ~/.config/atuin/config.toml: atuin/config.toml
     ~/Library/Application Support/xbar/plugins:
       path: xbar/plugins
       glob: true
