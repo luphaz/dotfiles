@@ -9,6 +9,15 @@ set -euo pipefail
 
 HINT='enter: switch · type a new name to create · ctrl-n: force create'
 
+# Dynamic "+ new session: <query>" header needs transform-header + FZF_MATCH_COUNT
+# (fzf 0.53.0+, Jul 2024). Older fzf (Ubuntu 22.04 ships 0.29, 24.04 ships 0.44)
+# rejects the bind outright, so gate on version — older fzf keeps the static hint.
+dyn_bind=()
+fzf_num=$(fzf --version 2>/dev/null | awk '{split($1,a,"."); printf "%d%03d%03d", a[1], a[2], a[3]}')
+if [ "${fzf_num:-0}" -ge 53000 ]; then
+  dyn_bind=(--bind "change:transform-header:[ \"\$FZF_MATCH_COUNT\" = 0 ] && [ -n \"\$FZF_QUERY\" ] && printf '\033[33m+ new session: %s\033[0m — enter to create' \"\$FZF_QUERY\" || printf '%s' '$HINT'")
+fi
+
 # fzf exits 1 on "no match" even when the user pressed Enter or Ctrl+N with a
 # typed query — that's exactly our create-new-session path, so don't treat
 # exit 1 as failure. Only 130 (Ctrl+C / Esc) should abort.
@@ -22,7 +31,7 @@ result=$(
     --expect=ctrl-n \
     --prompt='Session: ' \
     --header="$HINT" \
-    --bind "change:transform-header:[ \"\$FZF_MATCH_COUNT\" = 0 ] && [ -n \"\$FZF_QUERY\" ] && printf '\033[33m+ new session: %s\033[0m — enter to create' \"\$FZF_QUERY\" || printf '%s' '$HINT'" \
+    "${dyn_bind[@]}" \
     --preview='tmux capture-pane -ep -t {-1} 2>/dev/null' \
     --preview-window=right:60%
 )
