@@ -133,43 +133,35 @@
           fi
         fi
       - Installing nono (Linux .deb, pinned)
-    # atuin-server launchd agent (macOS only).
-    # Binds 127.0.0.1:8888; remote hosts reach it via SSH RemoteForward. Rendered
-    # at install time so the binary path matches whatever brew gave us (ARM vs
-    # Intel) without a committed-repo hardcode.
-    # One-time after first install: `atuin register -u luphaz ...` against
+    # atuin-server — let brew services own the launchd lifecycle (it ships its
+    # own plist at homebrew.mxcl.atuin-server). We just symlink brew's expected
+    # config path to our dotfiles-managed server.toml so the daemon reads our
+    # settings (loopback bind, SQLite backend, open_registration toggle).
+    # Remote hosts reach the server via SSH RemoteForward 8888:127.0.0.1:8888.
+    # One-time post-install: `atuin register -u luphaz ...` against
     # http://127.0.0.1:8888, then `atuin login` on each client machine.
+    #
+    # Migration cleanup: #14 rendered a hand-rolled plist at
+    # ~/Library/LaunchAgents/sh.atuin.server.plist. Tear it down if present.
     - - |
-        if [[ "$(uname)" == "Darwin" ]] && command -v atuin >/dev/null 2>&1; then
-          mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/atuin-server"
-          atuin_bin="$(command -v atuin)"
-          plist="$HOME/Library/LaunchAgents/sh.atuin.server.plist"
-          cat > "$plist" <<PLIST
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-          <key>Label</key><string>sh.atuin.server</string>
-          <key>ProgramArguments</key>
-          <array>
-            <string>${atuin_bin}</string>
-            <string>server</string>
-            <string>start</string>
-          </array>
-          <key>RunAtLoad</key><true/>
-          <key>KeepAlive</key><true/>
-          <key>StandardOutPath</key><string>/tmp/atuin-server.out.log</string>
-          <key>StandardErrorPath</key><string>/tmp/atuin-server.err.log</string>
-        </dict>
-        </plist>
-        PLIST
-          # Reload idempotently: bootout the old agent (ignore failure if not
-          # loaded), then bootstrap the fresh plist. Modern launchctl API —
-          # `load -w` still works but is deprecated on Sequoia+.
-          launchctl bootout "gui/$(id -u)/sh.atuin.server" 2>/dev/null || true
-          launchctl bootstrap "gui/$(id -u)" "$plist"
+        if [[ "$(uname)" == "Darwin" ]] && brew list atuin-server >/dev/null 2>&1; then
+          # Tear down the legacy hand-rolled plist from PR #14 (no-op if absent)
+          legacy_plist="$HOME/Library/LaunchAgents/sh.atuin.server.plist"
+          if [[ -f "$legacy_plist" ]]; then
+            launchctl bootout "gui/$(id -u)/sh.atuin.server" 2>/dev/null || true
+            rm -f "$legacy_plist"
+          fi
+          # Point brew's expected config path at our dotfiles-managed file.
+          # /opt/homebrew (ARM) or /usr/local (Intel) — brew --prefix handles both.
+          brew_prefix="$(brew --prefix)"
+          cfg_dir="${brew_prefix}/etc/atuin-server"
+          mkdir -p "$cfg_dir"
+          ln -sfn "$HOME/.dotfiles/atuin/server.toml" "${cfg_dir}/server.toml"
+          # Idempotent: `brew services start` is a no-op if already running and
+          # will pick up config changes on restart. Use `restart` on config edits.
+          brew services start atuin-server >/dev/null || true
         fi
-      - Install atuin-server launchd agent (macOS)
+      - Install + start atuin-server via brew services (macOS)
 
 # Clone oh-my-zsh plugins into ~/.dotfiles/.oh-my-zsh/custom/ (oh-my-zsh itself is a submodule)
 - git:
