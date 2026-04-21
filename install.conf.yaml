@@ -151,6 +151,10 @@
             launchctl bootout "gui/$(id -u)/sh.atuin.server" 2>/dev/null || true
             rm -f "$legacy_plist"
           fi
+          # SQLite db lives at $HOME/.local/share/atuin-server/server.db per
+          # server.toml's db_uri. sqlx-sqlite creates the file on first run (via
+          # ?mode=rwc) but not the parent directory — so we mkdir it here.
+          mkdir -p "$HOME/.local/share/atuin-server"
           # Point brew's expected config path at our dotfiles-managed file.
           # /opt/homebrew (ARM) or /usr/local (Intel) — brew --prefix handles both.
           brew_prefix="$(brew --prefix)"
