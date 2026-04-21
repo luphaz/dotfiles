@@ -7,7 +7,8 @@ brew "direnv"
 brew "bat"
 brew "bat-extras"
 brew "zoxide"  # smart cd (frecency-ranked): `z <partial>` jumps to best match
-brew "atuin"   # sqlite shell history with fuzzy Ctrl+R + optional cross-machine sync
+brew "atuin"         # sqlite shell history with fuzzy Ctrl+R + optional cross-machine sync
+brew "atuin-server"  # self-hosted sync server for atuin (separate formula from the client)
 brew "tmux"
 
 # ── Editors & AI Coding ──────────────────────────────────────────────
