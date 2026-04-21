@@ -134,7 +134,7 @@
         fi
       - Installing nono (Linux .deb, pinned)
     # atuin-server launchd agent (macOS only).
-    # Binds 127.0.0.1:8888; workspaces reach it via SSH RemoteForward. Rendered
+    # Binds 127.0.0.1:8888; remote hosts reach it via SSH RemoteForward. Rendered
     # at install time so the binary path matches whatever brew gave us (ARM vs
     # Intel) without a committed-repo hardcode.
     # One-time after first install: `atuin register -u luphaz ...` against

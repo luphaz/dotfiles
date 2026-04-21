@@ -1,6 +1,6 @@
 # atuin client config on this Mac — syncs against the local atuin-server launchd
-# agent (sh.atuin.server). Workspace machines have their own config.toml pointing
-# at localhost:8888 that reaches this server via SSH RemoteForward.
+# agent (sh.atuin.server). Remote hosts have their own config.toml pointing at
+# localhost:8888 that reaches this server via SSH RemoteForward.
 
 sync_address = "http://127.0.0.1:8888"
 

@@ -1,5 +1,5 @@
 # atuin-server — runs on this Mac as a launchd agent (sh.atuin.server).
-# Binds 127.0.0.1 only; workspaces reach it exclusively via `ssh -R 8888:127.0.0.1:8888`.
+# Binds 127.0.0.1 only; remote hosts reach it exclusively via `ssh -R 8888:127.0.0.1:8888`.
 # SQLite backend so no Postgres infra; the DB is just a file under ~/.local/share/atuin-server/.
 
 host = "127.0.0.1"
