@@ -39,6 +39,14 @@ export LC_CTYPE=en_US.UTF-8
 
 export FZF_DEFAULT_OPTS='--cycle'
 
+# Back fzf with fd so file/dir pickers skip .git, node_modules, etc. (respects .gitignore).
+# Guarded: if fd isn't installed yet (pre-Brewfile bootstrap), fzf falls back to its builtin walker.
+if command -v fd >/dev/null 2>&1; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+fi
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.dotfiles/.oh-my-zsh"
 export ZSH_CUSTOM="$ZSH/custom"
@@ -53,12 +61,14 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(
   fzf-tab                  # https://github.com/Aloxaf/fzf-tab#install
   fast-syntax-highlighting # https://github.com/zdharma-continuum/fast-syntax-highlighting
+  zsh-autosuggestions      # https://github.com/zsh-users/zsh-autosuggestions — load AFTER fzf-tab & syntax highlighting
 
   git
   forgit # https://github.com/wfxr/forgit
   kubectl
   helm
   docker
+  gcloud # portable google-cloud-sdk path + completion loader (Mac brew / Linux apt / snap)
   jq # https://github.com/reegnz/jq-zsh-plugin + iTerm2 send escape sequence CMD+J --> j + see below for CTRL+J (bindkey)
 )
 
@@ -69,16 +79,6 @@ plugins=(
 # Reset completion state when oh-my-zsh was already loaded (workspace double-load)
 [[ -n "$ZSH_COMPDUMP" ]] && unset ZSH_COMPDUMP
 source "${ZSH}/oh-my-zsh.sh"
-
-# google-cloud-sdk (after oh-my-zsh so compdef is already available — no extra compinit)
-[[ -f "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc" ]] && \
-  source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/path.zsh.inc"
-[[ -f "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc" ]] && \
-  source "${HOMEBREW_PREFIX}/share/google-cloud-sdk/completion.zsh.inc"
-
-# required to load zsh-autosuggestions AFTER fzf-tab https://github.com/Aloxaf/fzf-tab#install
-[[ -f "${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && \
-  source "${HOMEBREW_PREFIX}/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
 bindkey '^j' jq-complete
 
@@ -113,6 +113,29 @@ if [[ ! -f "$_direnv_hook_cache" ]] || [[ "$(command -v direnv)" -nt "$_direnv_h
 fi
 source "$_direnv_hook_cache"
 unset _direnv_hook_cache
+
+# zoxide — smart `cd` with frecency ranking (`z <partial>` / `zi` for interactive).
+# Init output is static per binary, so cache it like the direnv hook.
+if command -v zoxide >/dev/null 2>&1; then
+  _zoxide_init_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zoxide-init-zsh.sh"
+  if [[ ! -f "$_zoxide_init_cache" ]] || [[ "$(command -v zoxide)" -nt "$_zoxide_init_cache" ]]; then
+    zoxide init zsh > "$_zoxide_init_cache"
+  fi
+  source "$_zoxide_init_cache"
+  unset _zoxide_init_cache
+fi
+
+# atuin — sqlite-backed shell history with fuzzy Ctrl+R and optional sync.
+# --disable-up-arrow keeps Up as plain history scroll (no fuzzy popup); only Ctrl+R is rebound.
+# Run `atuin register` / `atuin login` manually to enable cross-machine sync.
+if command -v atuin >/dev/null 2>&1; then
+  _atuin_init_cache="${XDG_CACHE_HOME:-$HOME/.cache}/atuin-init-zsh.sh"
+  if [[ ! -f "$_atuin_init_cache" ]] || [[ "$(command -v atuin)" -nt "$_atuin_init_cache" ]]; then
+    atuin init zsh --disable-up-arrow > "$_atuin_init_cache"
+  fi
+  source "$_atuin_init_cache"
+  unset _atuin_init_cache
+fi
 
 # Source private dotfiles overlay if available
 [[ -f ~/.dd-dotfiles/init.zsh ]] && source ~/.dd-dotfiles/init.zsh
