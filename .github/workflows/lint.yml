@@ -1,0 +1,38 @@
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: shellcheck (bash/sh scripts, discovered by shebang)
+        run: |
+          set -euo pipefail
+          # Match only `bash` or `sh` as the interpreter — the leading [ /]
+          # prevents `zsh`/`ksh`/etc. from sneaking in via the `sh$` suffix.
+          files=()
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            if head -n1 "$f" | grep -qE '^#!.*[ /](bash|sh)$'; then
+              files+=("$f")
+            fi
+          done < <(git ls-files)
+          printf 'Linting %d shell scripts\n' "${#files[@]}"
+          shellcheck --severity=warning "${files[@]}"
+
+      - name: Brewfile — Ruby syntax
+        run: ruby -c Brewfile
+
+      - name: install.conf.yaml — valid YAML
+        run: ruby -ryaml -e "YAML.load_file('install.conf.yaml')"

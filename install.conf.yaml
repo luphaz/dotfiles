@@ -92,47 +92,9 @@
           defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool true
         fi
       - Enable press-and-hold accents in Ghostty (macOS only)
-    # Install essentials on Linux (workspaces/EC2) — macOS uses Brewfile instead.
-    - - |
-        if [[ "$(uname)" != "Darwin" ]]; then
-          sudo apt-get install -y fzf w3m 2>/dev/null || true
-        fi
-      - Installing essentials (Linux)
-    # Install nono (AI agent sandbox) on Linux from the upstream .deb.
-    # Pinned to a specific version + SHA256 per arch. Upstream's SHA256SUMS.txt
-    # only signs the .tar.gz builds, not the .deb — so we pin our own SHAs here,
-    # computed once and bumped via shell/bin/nono-bump.
-    - - |
-        if [[ "$(uname)" != "Darwin" ]] && ! command -v nono >/dev/null 2>&1; then
-          if command -v dpkg >/dev/null 2>&1 && command -v curl >/dev/null 2>&1; then
-            NONO_VERSION=0.37.1
-            NONO_SHA256_AMD64=70bbcd46a31103563bdfd9f88ec71d52c59c7cf6dc14723b48b21b92fddeb942
-            NONO_SHA256_ARM64=069d6b72bd914b8be1c57c45b1ad52fd43fcabc87982dcf11bb6e0be86d61e6d
-            arch=$(dpkg --print-architecture)
-            case "$arch" in
-              amd64) expected="$NONO_SHA256_AMD64" ;;
-              arm64) expected="$NONO_SHA256_ARM64" ;;
-              *) echo "nono: arch '$arch' not pinned, skipping"; expected="" ;;
-            esac
-            if [[ -n "$expected" ]]; then
-              tmp=$(mktemp -d)
-              deb="$tmp/nono.deb"
-              url="https://github.com/always-further/nono/releases/download/v${NONO_VERSION}/nono-cli_${NONO_VERSION}_${arch}.deb"
-              if curl -fsSL -o "$deb" "$url"; then
-                got=$(sha256sum "$deb" | awk '{print $1}')
-                if [[ "$got" == "$expected" ]]; then
-                  sudo dpkg -i "$deb" || true
-                else
-                  echo "nono: SHA256 mismatch for $arch (expected $expected, got $got); skipping"
-                fi
-              else
-                echo "nono: download failed; skipping"
-              fi
-              rm -rf "$tmp"
-            fi
-          fi
-        fi
-      - Installing nono (Linux .deb, pinned)
+    # Note: fzf, w3m, and nono on Linux are now installed via the Brewfile —
+    # the top-level `install` script bootstraps Linuxbrew on Linux before
+    # running `brew bundle`, so there's no separate apt/.deb path to maintain.
     # atuin-server — let brew services own the launchd lifecycle (it ships its
     # own plist at homebrew.mxcl.atuin-server). We just symlink brew's expected
     # config path to our dotfiles-managed server.toml so the daemon reads our
