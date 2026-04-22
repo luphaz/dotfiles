@@ -1,0 +1,6 @@
+# Silence pre-existing style/info chatter in this repo so CI focuses on real
+# bugs. Re-enable any of these one-by-one once the baseline is cleaned up.
+disable=SC2181  # "check exit code directly" — matter of style
+disable=SC2016  # "single-quoted `$var` doesn't expand" — intentional inside jq/awk scripts
+disable=SC2001  # "use ${var//x/y} instead of sed" — not always equivalent
+disable=SC2034  # "unused variable" — pre-existing in one xbar plugin; revisit
