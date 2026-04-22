@@ -20,7 +20,7 @@ JSON=$($GH search prs --review-requested=@me --state=open \
   --limit 100 2>/dev/null)
 
 if [ $? -ne 0 ] || [ -z "$JSON" ]; then
-  echo "⚠ PRs | color=red"
+  echo "👀 err | color=red"
   echo "---"
   echo "Failed to fetch PRs via gh"
   exit 0
@@ -32,7 +32,7 @@ JSON=$(echo "$JSON" | $JQ --argjson team "$TEAM_AUTHORS" '[.[] | select([.author
 COUNT=$(echo "$JSON" | $JQ 'length')
 
 if [ "$COUNT" -eq 0 ]; then
-  echo "#0"
+  echo "👀 review 0 | color=#586069"
   exit 0
 fi
 
@@ -60,9 +60,9 @@ STALE_COUNT=$(echo "$JSON" | $JQ --arg days "$STALE_DAYS" '
   [.[] | select((.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) < $cutoff)] | length')
 
 if [ "$STALE_COUNT" -gt 0 ]; then
-  echo "#${COUNT} (${STALE_COUNT} stale) | color=#f97583"
+  echo "👀 review ${COUNT} (${STALE_COUNT} ⏰) | color=#f97583"
 else
-  echo "#${COUNT}"
+  echo "👀 review ${COUNT}"
 fi
 echo "---"
 

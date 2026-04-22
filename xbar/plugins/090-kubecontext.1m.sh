@@ -14,7 +14,9 @@ case "$ACTIVE" in
   *prod.dog*) COLOR=" | color=#f97583" ;;
   *staging*)  COLOR=" | color=#ffab70" ;;
 esac
-echo "${ACTIVE}${COLOR}"
+# ⎈ (U+2388 helm) is the de-facto Kubernetes glyph — makes the item easy to
+# find via Ice search even when the context name is long/cryptic.
+echo "⎈ ${ACTIVE}${COLOR}"
 echo "---"
 
 $KUBECTL config get-contexts --no-headers -o name 2>/dev/null | sort | while read -r CTX; do

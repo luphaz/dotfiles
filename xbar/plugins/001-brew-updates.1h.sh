@@ -5,7 +5,7 @@
 # <xbar.desc>List available updates from Homebrew (OS X)</xbar.desc>
 
 exit_with_error() {
-  echo "err | color=red";
+  echo "🍺 err | color=red";
   exit 1;
 }
 
@@ -18,7 +18,7 @@ UPDATES=$(comm -13 <(for X in "${PINNED[@]}"; do echo "${X}"; done) <(for X in "
 
 UPDATE_COUNT=$(echo "$UPDATES" | grep -c '[^[:space:]]');
 
-echo "↑$UPDATE_COUNT | dropdown=false"
+echo "🍺 brew $UPDATE_COUNT | dropdown=false"
 echo "---";
 if [ -n "$UPDATES" ]; then
   echo "Upgrade all | bash=/opt/homebrew/bin/brew param1=upgrade terminal=false refresh=true"

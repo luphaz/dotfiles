@@ -10,7 +10,7 @@
 # hook in $HOME/.dotfiles/git/hooks/post-merge.
 set -euo pipefail
 
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "not a git repo"; exit 0; }
+git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "not a git repo"; exit 0; }
 default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||') || default_branch=main
 dry_run=0
 [[ "${1:-}" == "--dry-run" ]] && dry_run=1

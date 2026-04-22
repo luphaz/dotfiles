@@ -17,7 +17,7 @@ JSON=$($GH search prs --author=@me --state=open \
   --limit 100 2>/dev/null)
 
 if [ $? -ne 0 ] || [ -z "$JSON" ]; then
-  echo "⚠ MY | color=red"
+  echo "🚀 err | color=red"
   echo "---"
   echo "Failed to fetch PRs via gh"
   exit 0
@@ -26,7 +26,7 @@ fi
 COUNT=$(echo "$JSON" | $JQ 'length')
 
 if [ "$COUNT" -eq 0 ]; then
-  echo "MY:0 | color=green"
+  echo "🚀 prs 0 | color=#586069"
   echo "---"
   echo "No open PRs"
   exit 0
@@ -111,7 +111,7 @@ else
   bar_color="green"
 fi
 
-echo "MY:${COUNT} | color=${bar_color}"
+echo "🚀 prs ${COUNT} | color=${bar_color}"
 echo "---"
 
 # --- Render dropdown, sorted: fail first, then pending, then pass, then none ---
