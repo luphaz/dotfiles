@@ -6,6 +6,8 @@
 # <xbar.desc>Shows status of key services: GitHub, Anthropic, OpenAI, AWS, Slack, Zoom</xbar.desc>
 # <xbar.dependencies>curl,jq</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 JQ=/opt/homebrew/bin/jq
 TMPDIR=$(mktemp -d)
 
@@ -60,19 +62,24 @@ fetch_statuspage Zoom     "https://status.zoom.us/api/v2/status.json" &
 
 wait
 
-# Check if all OK
-ALL_OK=true
+# Tally non-OK services so the menu-bar title tells you at a glance whether
+# something needs attention without opening the dropdown.
+DOWN_COUNT=0
+HAS_MAJOR=false
 for name in GitHub Anthropic OpenAI AWS Slack Zoom; do
   s=$(cat "$TMPDIR/${name}.status" 2>/dev/null)
   if [ "$s" != "none" ]; then
-    ALL_OK=false
+    DOWN_COUNT=$((DOWN_COUNT + 1))
+    [ "$s" = "major" ] && HAS_MAJOR=true
   fi
 done
 
-if $ALL_OK; then
-  echo "✓ | color=#3fb950"
+if [ "$DOWN_COUNT" -eq 0 ]; then
+  echo "🚦 services ok | color=#3fb950"
+elif $HAS_MAJOR; then
+  echo "🚦 services ${DOWN_COUNT}↓ | color=#f97583"
 else
-  echo "⚠ | color=#ffab70"
+  echo "🚦 services ${DOWN_COUNT}↓ | color=#ffab70"
 fi
 
 echo "---"
