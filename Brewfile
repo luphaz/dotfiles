@@ -77,6 +77,7 @@ brew "minutes"
 
 # ── Apps ─────────────────────────────────────────────────────────────
 cask "xbar"
+cask "jordanbaird-ice"  # menu bar manager: hide/reorder items, tames xbar + Control Center surface
 cask "obsidian"
 cask "meetingbar"
 cask "ghostty"
