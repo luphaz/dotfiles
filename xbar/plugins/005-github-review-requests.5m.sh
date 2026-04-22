@@ -69,9 +69,10 @@ echo "---"
 echo "$JSON" | $JQ -r --argjson names "$NAME_MAP" --arg days "$STALE_DAYS" --argjson priority_repos "$PRIORITY_REPOS" '
   (now - ($days | tonumber) * 86400) as $cutoff |
   def repo_key:
-    ($priority_repos | index(.repository.name)) as $idx |
+    .repository.name as $name |
+    ($priority_repos | index($name)) as $idx |
     if $idx != null then "\($idx)"
-    else "99-\(.repository.name)"
+    else "99-\($name)"
     end;
   def is_stale:
     (.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) < $cutoff;
