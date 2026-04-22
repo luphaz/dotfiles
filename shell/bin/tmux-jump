@@ -19,6 +19,12 @@
 
 set -euo pipefail
 
+# xbar launches click handlers with a minimal PATH (/usr/bin:/bin:…), so
+# `tmux` isn't on the search path and `tmux has-session` silently fails into
+# the "no session" branch. Pre-pending the Homebrew prefix keeps this script
+# functional whether it's invoked interactively or from an xbar plugin.
+export PATH="/opt/homebrew/bin:$PATH"
+
 target="${1:?usage: tmux-jump <session>[:<window>[.<pane>]]}"
 session="${target%%:*}"
 
