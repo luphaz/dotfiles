@@ -6,6 +6,8 @@
 # <xbar.desc>Active Claude Code sessions — click to jump to the tmux pane in Ghostty</xbar.desc>
 # <xbar.dependencies>jq,tmux,ghostty</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 export PATH="/opt/homebrew/bin:$PATH"
 JQ=/opt/homebrew/bin/jq
 SESSIONS_DIR="$HOME/.claude/sessions"

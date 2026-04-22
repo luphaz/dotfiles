@@ -4,6 +4,8 @@
 # <xbar.author.github>luphaz</xbar.author.github>
 # <xbar.desc>Use macOS networkQuality to perform a regular speed test</xbar.desc>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 RESULT=$(/usr/bin/networkQuality -s 2>&1)
 
 if [ $? -ne 0 ]; then

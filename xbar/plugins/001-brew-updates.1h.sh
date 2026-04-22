@@ -4,6 +4,8 @@
 # <xbar.author.github>killercup</xbar.author.github>
 # <xbar.desc>List available updates from Homebrew (OS X)</xbar.desc>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 exit_with_error() {
   echo "🍺 err | color=red";
   exit 1;

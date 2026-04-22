@@ -6,6 +6,8 @@
 # <xbar.desc>Displays active kubeconfig context and allows you to easily change contexts.</xbar.desc>
 # <xbar.dependencies>kubectl</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 KUBECTL=/opt/homebrew/bin/kubectl
 
 ACTIVE=$($KUBECTL config current-context 2>/dev/null || echo "CONTEXT_NOT_SET")

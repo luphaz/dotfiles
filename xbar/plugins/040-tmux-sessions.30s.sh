@@ -5,6 +5,8 @@
 # <xbar.author>luphaz</xbar.author>
 # <xbar.dependencies>tmux,ghostty</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 export PATH="/opt/homebrew/bin:$PATH"
 
 TMUX_JUMP="$HOME/.dotfiles/shell/bin/tmux-jump"

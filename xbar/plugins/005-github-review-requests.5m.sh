@@ -6,6 +6,8 @@
 # <xbar.author.github>luphaz</xbar.author.github>
 # <xbar.dependencies>gh,jq</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 export PATH="/opt/homebrew/bin:$HOME/dd/devtools/bin:$PATH"
 
 GH="$HOME/.dd-dotfiles/bin/gh"

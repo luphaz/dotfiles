@@ -6,6 +6,8 @@
 # <xbar.desc>Shows status of key services: GitHub, Anthropic, OpenAI, AWS, Slack, Zoom</xbar.desc>
 # <xbar.dependencies>curl,jq</xbar.dependencies>
 
+source "$HOME/.dotfiles/xbar/plugin-guard.sh"
+
 JQ=/opt/homebrew/bin/jq
 TMPDIR=$(mktemp -d)
 
