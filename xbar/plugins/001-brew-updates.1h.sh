@@ -14,7 +14,11 @@ exit_with_error() {
 PINNED=$(/opt/homebrew/bin/brew list --pinned);
 OUTDATED=$(/opt/homebrew/bin/brew outdated --quiet);
 
-UPDATES=$(comm -13 <(for X in "${PINNED[@]}"; do echo "${X}"; done) <(for X in "${OUTDATED[@]}"; do echo "${X}"; done))
+# Sort both before comm — `brew outdated --quiet` output isn't collation-
+# sorted, and BSD comm (macOS) prints "file N is not in sorted order" on
+# stderr when it isn't. xbar treats any stderr output as plugin failure and
+# stops rendering all subsequent plugins, which manifests as an empty menu.
+UPDATES=$(comm -13 <(printf '%s\n' "$PINNED" | sort) <(printf '%s\n' "$OUTDATED" | sort))
 
 UPDATE_COUNT=$(echo "$UPDATES" | grep -c '[^[:space:]]');
 
