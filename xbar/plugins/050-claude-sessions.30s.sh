@@ -38,21 +38,16 @@ if [ "$1" = "jump" ] && [ -n "$2" ]; then
 fi
 
 # ── Display ──────────────────────────────────────────────────────────
-if [ ! -d "$SESSIONS_DIR" ]; then
-  echo "🤖 claude 0 | color=#586069"
-  exit 0
-fi
+# Enumerate live Claude processes directly — `~/.claude/sessions/<pid>.json`
+# is only written for `--worktree` launches, so a plain `claude …` invocation
+# would otherwise be invisible to this plugin. Using `ps -eo pid,comm` + awk
+# for exact match on the process name; pgrep on macOS silently drops the
+# pgrep-invoking process's own ancestors, which misses the user's foreground
+# Claude when the plugin happens to be triggered by it.
+ACTIVE_PIDS=()
+while IFS= read -r _pid; do ACTIVE_PIDS+=("$_pid"); done < <(ps -eo pid,comm 2>/dev/null | awk '$2=="claude"{print $1}')
 
-ACTIVE=()
-for f in "$SESSIONS_DIR"/*.json; do
-  [ -f "$f" ] || continue
-  pid=$($JQ -r '.pid' "$f" 2>/dev/null)
-  if kill -0 "$pid" 2>/dev/null; then
-    ACTIVE+=("$f")
-  fi
-done
-
-COUNT=${#ACTIVE[@]}
+COUNT=${#ACTIVE_PIDS[@]}
 if [ "$COUNT" -eq 0 ]; then
   echo "🤖 claude 0 | color=#586069"
   echo "---"
@@ -65,8 +60,7 @@ fi
 # amber, else → grey.
 ANY_WORKING=false
 ANY_WAITING=false
-for f in "${ACTIVE[@]}"; do
-  pid=$($JQ -r '.pid' "$f" 2>/dev/null)
+for pid in "${ACTIVE_PIDS[@]}"; do
   cpu=$(ps -p "$pid" -o %cpu= 2>/dev/null | tr -d ' ')
   cpu_int=$(printf "%.0f" "${cpu:-0}")
   proc_state=$(ps -p "$pid" -o state= 2>/dev/null | tr -d ' ')
@@ -87,12 +81,21 @@ fi
 
 echo "---"
 
-for f in "${ACTIVE[@]}"; do
-  session=$($JQ -c '.' "$f" 2>/dev/null)
-  pid=$(echo "$session" | $JQ -r '.pid')
-  cwd=$(echo "$session" | $JQ -r '.cwd')
-  session_id=$(echo "$session" | $JQ -r '.sessionId')
-  started_at=$(echo "$session" | $JQ -r '.startedAt')
+for pid in "${ACTIVE_PIDS[@]}"; do
+  # Prefer the session file when present (has sessionId/startedAt for topic
+  # + age). Fall back to lsof for cwd when it isn't — plain `claude` without
+  # `--worktree` doesn't write a session file.
+  session_file="$SESSIONS_DIR/$pid.json"
+  session_id=""
+  started_at=0
+  if [ -f "$session_file" ]; then
+    cwd=$($JQ -r '.cwd' "$session_file" 2>/dev/null)
+    session_id=$($JQ -r '.sessionId' "$session_file" 2>/dev/null)
+    started_at=$($JQ -r '.startedAt' "$session_file" 2>/dev/null)
+  else
+    cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | awk '/^n/{print substr($0,2); exit}')
+  fi
+  [ -z "$cwd" ] && cwd="?"
 
   # `${cwd/#$HOME/~}` silently no-ops on bash 5.3 (the one shipping via
   # Linuxbrew/Homebrew today), so do the prefix strip + ~ prepend manually.
@@ -103,12 +106,16 @@ for f in "${ACTIVE[@]}"; do
   fi
   dir_name=$(basename "$cwd")
 
-  now_ms=$(($(date +%s) * 1000))
-  age_s=$(( (now_ms - started_at) / 1000 ))
-  if [ "$age_s" -lt 3600 ]; then
-    age="$((age_s / 60))m"
+  if [ "$started_at" -gt 0 ] 2>/dev/null; then
+    now_ms=$(($(date +%s) * 1000))
+    age_s=$(( (now_ms - started_at) / 1000 ))
+    if [ "$age_s" -lt 3600 ]; then
+      age="$((age_s / 60))m"
+    else
+      age="$((age_s / 3600))h$((age_s % 3600 / 60))m"
+    fi
   else
-    age="$((age_s / 3600))h$((age_s % 3600 / 60))m"
+    age="?"
   fi
 
   cpu=$(ps -p "$pid" -o %cpu= 2>/dev/null | tr -d ' ')

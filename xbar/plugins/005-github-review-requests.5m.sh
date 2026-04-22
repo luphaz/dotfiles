@@ -34,7 +34,7 @@ JSON=$(echo "$JSON" | $JQ --argjson team "$TEAM_AUTHORS" '[.[] | select([.author
 COUNT=$(echo "$JSON" | $JQ 'length')
 
 if [ "$COUNT" -eq 0 ]; then
-  echo "👀 review 0 | color=#586069"
+  echo "👀 review 0 | color=#24292f"
   exit 0
 fi
 
