@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# ice-install-beta — install Ice 0.11.13-dev.2 over Homebrew's 0.11.12.
+#
+# The 0.11.12 stable cask crashes on macOS 26 Tahoe in NSStatusBarWindow
+# code paths; the maintainer's dev.2 pre-release fixes the main cluster
+# of those crashes but ships as a GitHub-only zip with no Homebrew cask.
+# Once 0.11.13 stable lands in homebrew-cask this helper can be deleted —
+# Ice's Sparkle updater (or `brew upgrade`) will take over.
+#
+# Every pinned value is checked against the downloaded artifact: size,
+# SHA-256, bundle id, version string, signing Team ID, Gatekeeper accept.
+# Any mismatch aborts before touching /Applications, so an upstream retag
+# or compromised release can't silently land on disk as Ice.app.
+#
+# Usage: ice-install-beta [--force]
+#   --force  reinstall even if the expected version is already present.
+
+set -euo pipefail
+
+ICE_TAG="0.11.13-dev.2"
+ICE_URL="https://github.com/jordanbaird/Ice/releases/download/${ICE_TAG}/Ice.zip"
+ICE_SHA256="c1bbaa71f61ebfe5ee928f790af60963a9f202364d63f78d2c6b3ec5105cf4a0"
+ICE_SIZE=3833231
+ICE_BUNDLE_ID="com.jordanbaird.Ice"
+ICE_TEAM_ID="K2ATHQPJDP"
+
+APP_PATH="/Applications/Ice.app"
+
+die() { echo "ice-install-beta: $*" >&2; exit 1; }
+
+[[ "$(uname)" == "Darwin" ]] || die "macOS only"
+
+force=0
+if [[ "${1:-}" == "--force" ]]; then
+  force=1
+elif [[ -n "${1:-}" ]]; then
+  die "unknown argument: $1 (use --force or no args)"
+fi
+
+if [[ -d "${APP_PATH}" && "${force}" -eq 0 ]]; then
+  current="$(defaults read "${APP_PATH}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "")"
+  if [[ "${current}" == "${ICE_TAG}" ]]; then
+    echo "ice-install-beta: already at ${ICE_TAG} — nothing to do (pass --force to reinstall)"
+    exit 0
+  fi
+fi
+
+work="$(mktemp -d /tmp/ice-install-beta.XXXXXX)"
+trap 'rm -rf "${work}"' EXIT
+
+zip="${work}/Ice.zip"
+echo "ice-install-beta: downloading ${ICE_URL}"
+curl -fsSL -o "${zip}" "${ICE_URL}" || die "download failed"
+
+# wc -c is portable; avoids BSD vs GNU stat flag divergence (coreutils on PATH).
+actual_size="$(wc -c < "${zip}" | tr -d ' ')"
+[[ "${actual_size}" == "${ICE_SIZE}" ]] \
+  || die "size mismatch: expected ${ICE_SIZE}, got ${actual_size}"
+
+actual_sha="$(shasum -a 256 "${zip}" | awk '{print $1}')"
+[[ "${actual_sha}" == "${ICE_SHA256}" ]] \
+  || die "SHA-256 mismatch: expected ${ICE_SHA256}, got ${actual_sha}"
+
+unzip -oq "${zip}" -d "${work}/unpacked"
+new_app="${work}/unpacked/Ice.app"
+[[ -d "${new_app}" ]] || die "Ice.app not found in archive"
+
+bundle_id="$(defaults read "${new_app}/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || echo "")"
+[[ "${bundle_id}" == "${ICE_BUNDLE_ID}" ]] \
+  || die "bundle id mismatch: expected ${ICE_BUNDLE_ID}, got ${bundle_id}"
+
+version="$(defaults read "${new_app}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "")"
+[[ "${version}" == "${ICE_TAG}" ]] \
+  || die "version mismatch: expected ${ICE_TAG}, got ${version}"
+
+sig_team="$(codesign -dv "${new_app}" 2>&1 | awk -F'=' '/^TeamIdentifier=/{print $2}')"
+[[ "${sig_team}" == "${ICE_TEAM_ID}" ]] \
+  || die "Team ID mismatch: expected ${ICE_TEAM_ID}, got ${sig_team}"
+
+spctl -a -vv "${new_app}" >/dev/null 2>&1 \
+  || die "Gatekeeper rejected the new bundle"
+
+echo "ice-install-beta: validated ${ICE_TAG}, swapping ${APP_PATH}"
+killall Ice 2>/dev/null || true
+# Give launchd a beat to release the bundle before we overwrite it.
+sleep 1
+
+backup=""
+if [[ -d "${APP_PATH}" ]]; then
+  backup="${APP_PATH}.ice-install-beta.bak.$$"
+  mv "${APP_PATH}" "${backup}"
+fi
+
+if ! mv "${new_app}" "${APP_PATH}"; then
+  # Restore the previous app so the machine isn't left without Ice.
+  [[ -n "${backup}" ]] && mv "${backup}" "${APP_PATH}"
+  die "install failed: could not move new Ice.app into /Applications"
+fi
+
+[[ -n "${backup}" ]] && rm -rf "${backup}"
+
+echo "ice-install-beta: installed ${ICE_TAG} at ${APP_PATH}"
+open -a Ice
+echo "ice-install-beta: launched Ice"
