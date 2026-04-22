@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ice-import — restore Ice's menu-bar layout from the snapshot committed
+# by ice-export. Run this on a fresh machine after Ice is installed and
+# has launched once (so cfprefsd has a domain slot to overwrite).
+#
+# cfprefsd caches plist reads aggressively, so a plain `defaults import`
+# won't take effect until the daemon is kicked; Ice itself also caches
+# in-memory and must be bounced to pick the new prefs up.
+
+set -euo pipefail
+
+DOMAIN="com.jordanbaird.Ice"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+IN="${DOTFILES}/ice/${DOMAIN}.plist"
+
+if [[ ! -f "${IN}" ]]; then
+  echo "ice-import: no snapshot at ${IN} — run ice-export first." >&2
+  exit 1
+fi
+
+defaults import "${DOMAIN}" "${IN}"
+killall cfprefsd 2>/dev/null || true
+killall Ice 2>/dev/null || true
+open -a Ice
+echo "ice-import: imported from ${IN} (Ice restarted)"

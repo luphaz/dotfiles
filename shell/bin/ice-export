@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# ice-export — snapshot Ice's menu-bar layout (visible/hidden/always-hidden
+# sections, item order, hotkeys) into the dotfiles repo so a fresh machine
+# can restore it via ice-import.
+#
+# Ice's prefs live at ~/Library/Preferences/com.jordanbaird.Ice.plist,
+# owned by cfprefsd. `defaults export` is the supported way to grab them.
+# We convert the dump to XML so git diffs stay human-readable across
+# tweaks to the layout.
+#
+# Not wired into ./install: the dump represents personal layout state,
+# not bootstrap config — re-run this script whenever you've rearranged
+# items and want the change captured.
+
+set -euo pipefail
+
+DOMAIN="com.jordanbaird.Ice"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+OUT="${DOTFILES}/ice/${DOMAIN}.plist"
+
+if ! defaults domains 2>/dev/null | tr ',' '\n' | grep -qx " *${DOMAIN}"; then
+  echo "ice-export: no prefs for ${DOMAIN} — launch Ice at least once first." >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "${OUT}")"
+defaults export "${DOMAIN}" "${OUT}"
+plutil -convert xml1 "${OUT}"
+echo "ice-export: wrote ${OUT}"
