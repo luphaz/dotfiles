@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# tmux-jump — focus Ghostty onto a tmux target, spawning a Ghostty+tmux window
+# if no client is currently attached.
+#
+# Usage: tmux-jump <session>[:<window>[.<pane>]]
+#   tmux-jump dev
+#   tmux-jump dev:0
+#   tmux-jump dev:0.1
+#
+# Two cases:
+#   1. Some Ghostty window already has an attached tmux client → switch that
+#      client (the most recently active one) to <target> and `open -a Ghostty`
+#      to bring the app forward.
+#   2. No attached client → spawn a new Ghostty window running `tmux attach -t
+#      <session>` so a single click works from a cold state. Ghostty's CLI on
+#      macOS refuses to launch the terminal directly (see `ghostty --help`), so
+#      we go through `open -na Ghostty.app --args -e …` which is Ghostty's
+#      documented macOS launch path.
+
+set -euo pipefail
+
+# xbar launches click handlers with a minimal PATH (/usr/bin:/bin:…), so
+# `tmux` isn't on the search path and `tmux has-session` silently fails into
+# the "no session" branch. Pre-pending the Homebrew prefix keeps this script
+# functional whether it's invoked interactively or from an xbar plugin.
+export PATH="/opt/homebrew/bin:$PATH"
+
+target="${1:?usage: tmux-jump <session>[:<window>[.<pane>]]}"
+session="${target%%:*}"
+
+if ! tmux has-session -t "$session" 2>/dev/null; then
+  echo "tmux-jump: no session '$session'" >&2
+  exit 1
+fi
+
+client=$(tmux list-clients -F '#{client_activity} #{client_name}' 2>/dev/null \
+  | sort -rn | head -1 | awk '{print $2}')
+
+if [ -n "$client" ]; then
+  tmux switch-client -c "$client" -t "$target"
+  open -a Ghostty
+else
+  open -na Ghostty.app --args -e tmux attach -t "$session"
+fi

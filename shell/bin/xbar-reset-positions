@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# xbar-reset-positions — force every xbar menu-bar item into the visible zone.
+#
+# Why: xbar stores per-item `preferredPosition` in com.xbarapp.app (one
+# `NSStatusItem Preferred Position Item-<N>` key per plugin) and re-applies
+# those positions on every plugin refresh. Items whose stored positions
+# happen to fall past Ice's "always hidden" anchor (~5645) snap back there
+# every refresh, fighting any drag-to-visible you do in Ice.
+#
+# This script enumerates every Item-N key currently stored in xbar's prefs
+# and rewrites them into the visible range (200, 220, 240, …), spaced so
+# the relative order is preserved. Then bounces xbar so the new positions
+# take effect.
+#
+# Idempotent: safe to run multiple times. Scales with the number of plugins
+# automatically — no hard-coded count.
+#
+# Usage:
+#   xbar-reset-positions           # reset + relaunch xbar
+#   xbar-reset-positions --dry-run # show what would change, touch nothing
+
+set -euo pipefail
+
+DOMAIN="com.xbarapp.app"
+BASE=200
+STEP=20
+DRY_RUN=0
+[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+
+# Pull every `NSStatusItem Preferred Position Item-<N>` key from the prefs.
+# awk on the -F'"' split gets us the clean key name (the middle quoted field).
+keys=$(defaults read "$DOMAIN" 2>/dev/null \
+  | awk -F'"' '/NSStatusItem Preferred Position Item-[0-9]+/ {print $2}')
+
+if [[ -z "$keys" ]]; then
+  echo "xbar-reset-positions: no Item-N keys in $DOMAIN — is xbar running?" >&2
+  exit 1
+fi
+
+# Sort by the numeric suffix so Item-0, Item-1, …, Item-10 land in that
+# order (plain sort would put Item-10 before Item-2).
+sorted_keys=$(echo "$keys" | awk -F'Item-' '{print $2 "\t" $0}' | sort -n | cut -f2-)
+count=$(echo "$sorted_keys" | wc -l | tr -d ' ')
+
+echo "xbar-reset-positions: rewriting $count item(s) in $DOMAIN"
+i=0
+while IFS= read -r key; do
+  pos=$((BASE + i * STEP))
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '  [dry-run] %s → %d\n' "$key" "$pos"
+  else
+    defaults write "$DOMAIN" "$key" -int "$pos"
+    printf '  %s → %d\n' "$key" "$pos"
+  fi
+  i=$((i + 1))
+done <<< "$sorted_keys"
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "xbar-reset-positions: dry-run complete (no changes written)"
+  exit 0
+fi
+
+killall xbar 2>/dev/null || true
+sleep 1
+open -a xbar
+echo "xbar-reset-positions: done — xbar relaunched"
