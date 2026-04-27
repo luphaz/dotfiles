@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# dotfiles-self-update <repo-dir>
+#
+# Stash (incl. untracked) → ff-pull → pop on the given repo when on the
+# default branch (`main`). Used by install scripts in this repo and the
+# private dd overlay to ensure newly-merged install logic takes effect
+# on the SAME run rather than requiring a second pass — bash buffers
+# the install file at parse time and won't pick up post-pull content
+# in-process.
+#
+# Usage from an install script:
+#
+#   if "$HOME/.dotfiles/shell/bin/dotfiles-self-update" "$BASEDIR"; then
+#     export _MY_INSTALL_PULLED=1   # caller's own loop guard
+#     exec "$BASEDIR/install" "${@}"
+#   fi
+#
+# Exit codes:
+#   0  pull succeeded (or repo wasn't on main — no-op)
+#   1  bail: stash/pull/pop failed in a way that warrants aborting the
+#      install. Local changes are SAFELY parked in `git stash list`
+#      when relevant; the message tells the operator what to do next.
+#
+# Worktree branches are skipped (they track feature branches, not
+# main; pulling would be wrong) — the caller's loop-guard env var
+# isn't needed for that case but is still honoured below.
+set -euo pipefail
+
+repo_dir="${1:?usage: dotfiles-self-update <repo-dir>}"
+
+# Skip if not on main.
+on_branch=$(git -C "$repo_dir" symbolic-ref --short HEAD 2>/dev/null || true)
+if [ "$on_branch" != "main" ]; then
+  exit 0
+fi
+
+stashed=0
+if [ -n "$(git -C "$repo_dir" status --porcelain 2>/dev/null)" ]; then
+  echo "  → stashing local changes (incl. untracked)..."
+  if git -C "$repo_dir" stash push --include-untracked --message "auto-update: pre-pull-stash" 2>&1 | sed 's/^/    /'; then
+    stashed=1
+  else
+    echo "  → stash failed; skipping self-update" >&2
+    exit 1
+  fi
+fi
+
+if ! git -C "$repo_dir" pull --ff-only 2>&1 | sed 's/^/    /'; then
+  echo "  → pull failed (non-fast-forward?); restoring local changes" >&2
+  [ "$stashed" = "1" ] && git -C "$repo_dir" stash pop 2>&1 | sed 's/^/    /' || true
+  exit 1
+fi
+
+if [ "$stashed" = "1" ]; then
+  if ! git -C "$repo_dir" stash pop 2>&1 | sed 's/^/    /'; then
+    cat >&2 <<'CONFLICT'
+  → stash pop had conflicts after pulling.
+    Local changes are SAFE in `git stash list` (top entry).
+    Resolve, then re-run install:
+      1) Inspect:        git status, git diff
+      2) Drop changes:   git stash drop      (discard local diff entirely)
+      3) Or fix + apply: edit files → git add <files> → git stash drop
+      4) Or rebase the stash onto main:  git stash branch <name> stash@{0}
+    Aborting install so you can resolve before retry.
+CONFLICT
+    exit 1
+  fi
+fi
+
+exit 0
