@@ -76,7 +76,7 @@ brew "jq"
 brew "tldr"
 brew "hugo"
 brew "adr-tools"
-brew "acli"
+brew "acli" if OS.mac?                # Atlassian Connect CLI — formula isn't on Linuxbrew, so skip on workspaces
 brew "gnupg"
 brew "minutes"
 
