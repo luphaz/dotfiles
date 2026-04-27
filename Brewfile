@@ -61,6 +61,7 @@ brew "lima" if OS.mac?                # VM manager used to back rootful Docker o
 brew "skaffold"
 brew "stern"
 brew "tfenv"
+brew "terraform-docs"                 # auto-generate Terraform module READMEs from .tf files (markers in README.md)
 brew "crane"
 brew "grpcurl"
 brew "azure-cli"
