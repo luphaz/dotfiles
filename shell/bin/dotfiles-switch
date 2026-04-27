@@ -11,11 +11,11 @@
 #
 # Side effects (in order):
 #   1. target=main: git pull --ff-only  (worktrees skip the pull)
-#   2. SKIP_BREW=1 <target>/install
+#   2. <target>/install
 #        → ln -sfn <target> ~/.dotfiles
 #        → git submodule update --init --recursive
 #        → dotbot: clones oh-my-zsh custom plugins/theme, relinks ~/.tmux.conf, etc.
-#        → (Brewfile skipped via SKIP_BREW=1)
+#        → brew bundle (cached → near-instant when nothing changed)
 #   3. tmux source-file <target>/tmux/.tmux.conf  (if in tmux)
 #   4. tmux send-keys 'source ~/.zshrc' to idle zsh panes in the current session
 #
@@ -73,8 +73,8 @@ if [ "$target" = "main" ]; then
   (cd "$new_path" && git pull --ff-only 2>&1 | sed 's/^/    /') || echo "    (pull failed — continuing)"
 fi
 
-echo "  running install (SKIP_BREW=1)..."
-if SKIP_BREW=1 "$new_path/install" 2>&1 | sed 's/^/    /'; then
+echo "  running install..."
+if "$new_path/install" 2>&1 | sed 's/^/    /'; then
   :
 else
   echo "  install failed — check output above" >&2
