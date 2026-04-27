@@ -22,7 +22,7 @@
 # Caveat on step 4: panes whose pane_current_command is "zsh" are assumed idle.
 # If you have text typed at the prompt without pressing Enter, send-keys will
 # concatenate onto it before the Enter — press Ctrl+U to recover.
-set -eu
+set -euo pipefail
 
 DOTFILES="$HOME/git/dotfiles"
 WT_DIR="$DOTFILES/.claude/worktrees"
@@ -74,9 +74,13 @@ if [ "$target" = "main" ]; then
 fi
 
 echo "  running install..."
-if "$new_path/install" 2>&1 | sed 's/^/    /'; then
-  :
-else
+# `set -o pipefail` (set above) + `if !` catches install's non-zero
+# exit code through the pipe. Previously this used `if cmd | sed ...;
+# then :; else error; fi` without pipefail — the if-check saw sed's
+# rc=0 and never printed the failure, so "all green" reported even
+# after dotbot died on a broken Brewfile or git step. Hard-stop now so
+# callers (post-merge hook, C-b u wrapper, manual) see the failure.
+if ! "$new_path/install" 2>&1 | sed 's/^/    /'; then
   echo "  install failed — check output above" >&2
   exit 1
 fi
