@@ -3,6 +3,17 @@
 # unchanged and skip the noise. All `cask` entries are Mac-only by
 # definition (brew --cask isn't supported on Linux).
 
+# ── Taps ─────────────────────────────────────────────────────────────
+# Non-default taps used by entries below. `brew bundle` resolves taps
+# before formulas, so fresh Linuxbrew installs (workspaces) get them
+# added on the first run. Default taps (homebrew/core, homebrew/cask)
+# are implicit and don't need declarations — bare formula/cask names
+# resolve there unambiguously since core/cask names are unique within
+# the registry.
+tap "datadog-labs/pack"               # public DD lab org's tap — used for `pup`
+tap "atlassian/acli"                  # Atlassian Connect CLI tap — used for `acli`
+tap "silverstein/tap"                 # used for `minutes`
+
 # ── Shell & Terminal ─────────────────────────────────────────────────
 brew "bash"
 brew "coreutils"
@@ -34,7 +45,7 @@ brew "wget"
 brew "curl"
 brew "xz"
 brew "make"
-brew "pup"
+brew "datadog-labs/pack/pup"          # fully-qualified to disambiguate from any homebrew-core `pup` formula and to require the datadog-labs tap declared above
 brew "fswatch"
 
 # ── Git ──────────────────────────────────────────────────────────────
@@ -76,9 +87,9 @@ brew "jq"
 brew "tldr"
 brew "hugo"
 brew "adr-tools"
-brew "acli" if OS.mac?                # Atlassian Connect CLI — formula isn't on Linuxbrew, so skip on workspaces
+brew "atlassian/acli/acli" if OS.mac? # Atlassian Connect CLI — fully-qualified for clarity; tap above. Skip on Linuxbrew (no Linux formula in this tap)
 brew "gnupg"
-brew "minutes" if OS.mac?             # silverstein/tap meeting-notes tool — tap not provisioned on Linuxbrew
+brew "silverstein/tap/minutes" if OS.mac?  # meeting-notes tool — fully-qualified; tap above. Skip on Linuxbrew
 
 # ── Apps ─────────────────────────────────────────────────────────────
 cask "xbar" if OS.mac?
