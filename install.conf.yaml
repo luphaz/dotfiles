@@ -157,28 +157,32 @@
     - ~/Library/Application Support/xbar/plugins
 
 - link:
-    # Note: ~/.dotfiles symlink is created by the install script (ln -sfn "${BASEDIR}")
-    # so that worktree-based installs (dotfiles-switch) point at the right checkout.
-    # Don't re-add it as a dotbot link here — that hardcodes the target to main.
-    ~/.gitattributes: git/.gitattributes
-    ~/.gitignore: git/.gitignore
-    ~/.gitconfig.dotfiles: git/.gitconfig
-    ~/.ssh/config.dotfiles: ssh/config
-    ~/.zshrcdotfiles: shell/.zshrc
-    ~/.p10k.zsh: shell/.p10k.zsh
-    ~/.tmux.conf: tmux/.tmux.conf
-    ~/.config/ghostty/config: ghostty/config
-    ~/.config/nvim/init.lua: nvim/init.lua
-    ~/.config/atuin/server.toml: atuin/server.toml
-    ~/.config/atuin/config.toml: atuin/config.toml
+    # Sources use `~/.dotfiles/...` (the normalised symlink) rather than relative
+    # BASEDIR paths so the symlinks dotbot creates resolve through ~/.dotfiles
+    # at runtime instead of being pinned to the BASEDIR that happened to be
+    # active during install. After a `dotfiles-switch` retargets ~/.dotfiles,
+    # downstream config (~/.tmux.conf, ~/.zshrcdotfiles, etc.) follows for free.
+    # The ~/.dotfiles symlink itself is created by the install script
+    # (ln -sfn "${BASEDIR}") before dotbot runs — don't re-add it here, that
+    # would hardcode the target to main.
+    ~/.gitattributes: ~/.dotfiles/git/.gitattributes
+    ~/.gitignore: ~/.dotfiles/git/.gitignore
+    ~/.gitconfig.dotfiles: ~/.dotfiles/git/.gitconfig
+    ~/.ssh/config.dotfiles: ~/.dotfiles/ssh/config
+    ~/.zshrcdotfiles: ~/.dotfiles/shell/.zshrc
+    ~/.p10k.zsh: ~/.dotfiles/shell/.p10k.zsh
+    ~/.tmux.conf: ~/.dotfiles/tmux/.tmux.conf
+    ~/.config/ghostty/config: ~/.dotfiles/ghostty/config
+    ~/.config/nvim/init.lua: ~/.dotfiles/nvim/init.lua
+    ~/.config/atuin/server.toml: ~/.dotfiles/atuin/server.toml
+    ~/.config/atuin/config.toml: ~/.dotfiles/atuin/config.toml
     # Per-file symlinks (NOT a directory symlink) so the dd overlay's xbar
     # plugin (045-workspaces.2m.sh, symlinked separately by workspaces-dotfiles
     # install.sh) can coexist alongside the public ones. The `/*` glob
     # expansion is what makes dotbot create one symlink per file rather than
     # symlinking the whole `xbar/plugins` directory; force:true clobbers any
-    # stale entries (e.g. when switching worktrees: previous-worktree
-    # symlinks get re-pointed at the new BASEDIR).
+    # stale entries.
     ~/Library/Application Support/xbar/plugins:
-      path: xbar/plugins/*
+      path: ~/.dotfiles/xbar/plugins/*
       glob: true
       force: true
