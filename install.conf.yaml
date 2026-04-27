@@ -152,9 +152,7 @@
 
 - create:
     - ~/.config/nvim
-    - ~/.config/ghostty
     - ~/.config/atuin
-    - ~/Library/Application Support/xbar/plugins
 
 - link:
     # Sources use `~/.dotfiles/...` (the normalised symlink) rather than relative
@@ -172,9 +170,21 @@
     ~/.zshrcdotfiles: ~/.dotfiles/shell/.zshrc
     ~/.p10k.zsh: ~/.dotfiles/shell/.p10k.zsh
     ~/.tmux.conf: ~/.dotfiles/tmux/.tmux.conf
-    ~/.config/ghostty/config: ~/.dotfiles/ghostty/config
+    # Ghostty is a macOS terminal emulator; skip on Linux so we don't
+    # create a useless ~/.config/ghostty/ tree on workspaces. `create: true`
+    # makes dotbot mkdir the parent dir on the macOS path (it's no longer
+    # in the top-level `create:` task above).
+    ~/.config/ghostty/config:
+      path: ~/.dotfiles/ghostty/config
+      create: true
+      if: '[ "$(uname)" = "Darwin" ]'
     ~/.config/nvim/init.lua: ~/.dotfiles/nvim/init.lua
-    ~/.config/atuin/server.toml: ~/.dotfiles/atuin/server.toml
+    # atuin-server runs only on the Mac (brew service `atuin-server`), so
+    # the server config is Mac-only. atuin-server.toml on Linux would be
+    # a dangling reference (no service consumes it).
+    ~/.config/atuin/server.toml:
+      path: ~/.dotfiles/atuin/server.toml
+      if: '[ "$(uname)" = "Darwin" ]'
     ~/.config/atuin/config.toml: ~/.dotfiles/atuin/config.toml
     # Per-file symlinks (NOT a directory symlink) so the dd overlay's xbar
     # plugin (045-workspaces.2m.sh, symlinked separately by workspaces-dotfiles
@@ -182,7 +192,15 @@
     # expansion is what makes dotbot create one symlink per file rather than
     # symlinking the whole `xbar/plugins` directory; force:true clobbers any
     # stale entries.
+    #
+    # Gated on macOS: xbar only runs there. On Linux (workspaces) we'd be
+    # creating a useless ~/Library/... directory tree and trying to clobber
+    # whatever stock files happen to be there. `create: true` makes dotbot
+    # mkdir the target dir on first install, which we no longer pre-create
+    # via the top-level `create:` task above (also Mac-specific).
     ~/Library/Application Support/xbar/plugins:
       path: ~/.dotfiles/xbar/plugins/*
       glob: true
       force: true
+      create: true
+      if: '[ "$(uname)" = "Darwin" ]'
