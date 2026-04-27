@@ -19,6 +19,21 @@ ln -sfn "${BASEDIR}" "${HOME}/.dotfiles"
 # Bootstrap all submodules (dotbot, dotbot-git, dotbot-brew, .oh-my-zsh) before running dotbot
 git submodule update --init --recursive
 
+# Defensive: replace any directory-level symlinks at our managed link
+# destinations with a fresh empty dir. Old versions of this config used
+# `path: xbar/plugins` (no /*) which made dotbot create a directory-level
+# symlink — and once that exists, dotbot's per-file `force: true` glob will
+# happily delete files at the symlink's TARGET (often tracked source files
+# in this very repo) before recreating self-referential symlinks. Catch
+# this once at install time so old machines self-heal on next run.
+_xbar_plugins_dest="$HOME/Library/Application Support/xbar/plugins"
+if [ -L "$_xbar_plugins_dest" ]; then
+  echo "Defusing legacy directory-level symlink: $_xbar_plugins_dest"
+  rm "$_xbar_plugins_dest"
+  mkdir -p "$_xbar_plugins_dest"
+fi
+unset _xbar_plugins_dest
+
 "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-git -c "${CONFIG}" "${@}"
 
 # Linuxbrew bootstrap — on Linux, install Homebrew if missing so the Brewfile
