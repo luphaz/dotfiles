@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 # After a merge:
 #   1. In the dotfiles repo: if ~/.dotfiles points at a worktree whose
-#      branch is merged into main AND gone from origin, bounce it back
-#      to main first so pruning doesn't dangle the active symlink.
+#      PR has been merged on GitHub, bounce ~/.dotfiles back to main
+#      first so pruning doesn't dangle the active symlink.
 #   2. Always run the worktree prune (safe no-op where nothing matches).
 set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
+# Mirror dotfiles-prune-worktrees' is_branch_merged: gh as primary
+# (catches squash merges), is-ancestor + remote-gone as fallback.
+_branch_merged() {
+  local branch="$1"
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if [ -n "$(gh pr list --state merged --head "$branch" --limit 1 --json number --jq '.[].number' 2>/dev/null)" ]; then
+      return 0
+    fi
+  fi
+  git merge-base --is-ancestor "$branch" main 2>/dev/null \
+    && ! git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1
+}
+
 if [[ "$repo_root" == "$HOME/git/dotfiles" ]]; then
   active=$(readlink "$HOME/.dotfiles" 2>/dev/null || true)
   if [[ "$active" == "$repo_root/.claude/worktrees/"* ]]; then
     branch=$(git -C "$active" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    if [[ -n "$branch" ]] \
-       && git merge-base --is-ancestor "$branch" main 2>/dev/null \
-       && ! git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+    if [[ -n "$branch" ]] && _branch_merged "$branch"; then
       echo "post-merge: ~/.dotfiles on merged worktree '${active##*/}' — switching to main"
       "$HOME/.dotfiles/shell/bin/dotfiles-switch" main || true
     fi
