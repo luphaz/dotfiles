@@ -235,9 +235,26 @@
 # Install the pinned terraform version after the ~/.terraform-version
 # symlink is in place (link block above). `tfenv install` with no arg
 # reads ~/.terraform-version, fetches that version's binary if missing,
-# and is a no-op when already installed — so this is cache-driven on
-# repeat runs. Brewfile already installs tfenv itself; this just
-# bootstraps the actual terraform binary it shims to.
+# and is a no-op when already installed — cache-driven on repeat runs.
+#
+# TFENV_CONFIG_DIR pinning: we set it to ~/.tfenv inline so dotbot's
+# non-interactive shell sees it (zshrc isn't sourced from here). This
+# is the data dir (versions/, .install-lock-*); without the override
+# tfenv defaults it to TFENV_ROOT, which when installed via brew is
+# the volatile Cellar/tfenv/<v>/ dir. See shell/.zshrc for the long
+# rationale; short version: persistent location survives `brew upgrade
+# tfenv` and gives the install pipeline a stable spot to pre-clean
+# stale lock dirs.
+#
+# Defensive: clear stale lock dirs (mtime >5min ago) before invoking
+# install. mkdir-based locks held by a live tfenv install will be
+# fresh; anything older was abandoned.
 - shell:
-    - - command -v tfenv >/dev/null 2>&1 && tfenv install >/dev/null 2>&1 || true
-      - Install pinned terraform via tfenv (reads ~/.terraform-version)
+    - - |
+        if command -v tfenv >/dev/null 2>&1; then
+          export TFENV_CONFIG_DIR="${HOME}/.tfenv"
+          mkdir -p "$TFENV_CONFIG_DIR"
+          find "$TFENV_CONFIG_DIR" -maxdepth 1 -type d -name '.install-lock-*' -mmin +5 -exec rm -rf {} + 2>/dev/null || true
+          tfenv install
+        fi
+      - Install pinned terraform via tfenv (TFENV_CONFIG_DIR=~/.tfenv, reads ~/.terraform-version)

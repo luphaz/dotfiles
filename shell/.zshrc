@@ -32,6 +32,24 @@ fi
 export GOPATH="${HOME}/go"
 export PATH="${GOPATH}/bin:${PATH}"
 
+# tfenv — pin TFENV_CONFIG_DIR (lock + versions/ data dir) to a
+# persistent location. tfenv keeps two paths separate:
+#   - TFENV_ROOT — its own install dir (where lib/helpers.sh lives).
+#     When installed via brew this is the volatile Cellar/tfenv/<v>/
+#     and it MUST stay there so tfenv can find its own libraries.
+#   - TFENV_CONFIG_DIR — where it stores installed terraform binaries
+#     (versions/<v>/) and install lock dirs (.install-lock-<v>).
+#     Defaults to TFENV_ROOT when unset → without this override, our
+#     terraform installs and locks land in the volatile Cellar dir too.
+# Two problems we sidestep by setting TFENV_CONFIG_DIR=~/.tfenv:
+#   1. `brew upgrade tfenv` no longer wipes installed terraform
+#      binaries — they live under ~/.tfenv/versions/<v>/.
+#   2. Stale install lock dirs (.install-lock-<v>) from killed installs
+#      land in a stable place the install pipeline can pre-clean,
+#      instead of intermittently surviving brew operations and
+#      triggering 60s "Lock wait timeout / Removing stale lock" loops.
+export TFENV_CONFIG_DIR="${HOME}/.tfenv"
+
 export PATH="${HOME}/.dotfiles/shell/bin:${PATH}"
 
 export LC_ALL=en_US.UTF-8
