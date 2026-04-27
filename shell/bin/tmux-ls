@@ -2,11 +2,16 @@
 # List tmux sessions sorted by activity, with the current session highlighted in red.
 # Output: "● <name>" (red) for the active session, "  <name>" for others.
 # Used by ts/tk aliases and Ctrl+S / Ctrl+K tmux bindings.
-current=$(tmux display-message -p '#S' 2>/dev/null)
+set -euo pipefail
+# `|| true` on both: tmux exits non-zero when the server isn't running
+# or when there are no sessions; we want this script to silently print
+# nothing in those cases rather than abort under strict mode.
+current=$(tmux display-message -p '#S' 2>/dev/null || true)
 tmux list-sessions -F '#{session_activity} #S' 2>/dev/null \
   | sort -rn \
   | awk -v cur="$current" '{
       name = $2
       if (name == cur) printf "\033[31m●\033[0m %s\n", name
       else             printf "  %s\n", name
-    }'
+    }' \
+  || true
