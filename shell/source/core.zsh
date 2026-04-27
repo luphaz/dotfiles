@@ -4,11 +4,17 @@
 # ccl: trusted full-write work. cce: read-only exploration — plan mode means
 # no Edit/Write/destructive Bash; to go further claude calls ExitPlanMode
 # which prompts for approval.
+#
+# CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 disables claude's auto-memory feature
+# regardless of any per-project .claude/settings.json that tries to re-enable
+# it (process env beats settings-file env at launch). Behaviour preferences
+# live in CLAUDE.md, mechanical rules in PreToolUse hooks — memory recall is
+# too soft a guarantee. See https://github.com/luphaz/.claude/pull/1.
 ccl() {
-  claude --strict-mcp-config --worktree "$@"
+  CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 claude --strict-mcp-config --worktree "$@"
 }
 cce() {
-  claude --permission-mode plan --worktree "$@"
+  CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 claude --permission-mode plan --worktree "$@"
 }
 
 # tmux
