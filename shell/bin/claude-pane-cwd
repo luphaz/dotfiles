@@ -17,7 +17,7 @@
 # Intended to be invoked from inside a tmux display-popup (fzf needs a tty).
 # Exit 1 only if the user cancels fzf.
 
-set -u
+set -euo pipefail
 
 count_mode=0
 if [[ "${1:-}" == "--count" ]]; then

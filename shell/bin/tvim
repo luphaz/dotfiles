@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tvim — open nvim in a floating tmux popup
 # Falls back to plain nvim outside tmux or when already inside a popup.
-if [[ -n "$TMUX" && -z "$TMUX_POPUP" ]]; then
+set -euo pipefail
+if [[ -n "${TMUX:-}" && -z "${TMUX_POPUP:-}" ]]; then
   exec tmux display-popup -E -w 90% -h 80% -d "$PWD" \
     -e "TMUX_POPUP=1" \
     "nvim $*"

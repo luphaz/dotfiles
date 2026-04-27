@@ -15,7 +15,7 @@
 # Also supports inline create (like shell/bin/tmux-switch):
 #   - type a name that matches no row + Enter → create that session, attach
 #   - Ctrl+N inside fzf → force-create a session with the typed query
-set -uo pipefail
+set -euo pipefail
 
 command -v tmux >/dev/null 2>&1 || exit 0
 command -v fzf  >/dev/null 2>&1 || exit 0

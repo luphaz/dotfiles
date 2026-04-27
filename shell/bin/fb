@@ -2,6 +2,7 @@
 # File browser — fzf tree with bat preview, opens selection in tvim.
 # Usage: fb [dir]   (defaults to current directory)
 # Used by the 'fb' shell alias and the Ctrl+E tmux binding.
+set -euo pipefail
 dir="${1:-.}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
