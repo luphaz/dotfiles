@@ -13,6 +13,26 @@ BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 cd "${BASEDIR}"
 
+# Self-update: when invoked on a `main` checkout, fetch + ff-pull + exec
+# the post-pull version of this script. Without this, running install
+# right after pulling a remote change uses the OLD in-memory bash buffer
+# of this file — newly-merged install logic doesn't take effect until
+# the SECOND run. The _DOTFILES_INSTALL_PULLED guard prevents an
+# infinite re-exec loop.
+#
+# Skipped on worktree branches: worktrees track feature branches, not
+# main, and pulling would be wrong (would try to fast-forward a feature
+# branch from origin/<feature> which may not exist or have unrelated
+# state).
+if [ "${_DOTFILES_INSTALL_PULLED:-}" != "1" ] \
+   && [ "$(git symbolic-ref --short HEAD 2>/dev/null || true)" = "main" ]; then
+  echo "→ self-update: git pull --ff-only"
+  if git pull --ff-only 2>&1 | sed 's/^/    /'; then
+    export _DOTFILES_INSTALL_PULLED=1
+    exec "${BASEDIR}/install" "${@}"
+  fi
+fi
+
 # Create ~/.dotfiles symlink early so dd-dotfiles install can rely on it
 ln -sfn "${BASEDIR}" "${HOME}/.dotfiles"
 
