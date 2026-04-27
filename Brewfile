@@ -76,9 +76,9 @@ brew "jq"
 brew "tldr"
 brew "hugo"
 brew "adr-tools"
-brew "acli"
+brew "acli" if OS.mac?                # Atlassian Connect CLI — formula isn't on Linuxbrew, so skip on workspaces
 brew "gnupg"
-brew "minutes"
+brew "minutes" if OS.mac?             # silverstein/tap meeting-notes tool — tap not provisioned on Linuxbrew
 
 # ── Apps ─────────────────────────────────────────────────────────────
 cask "xbar" if OS.mac?
