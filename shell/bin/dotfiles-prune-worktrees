@@ -1,10 +1,22 @@
 #!/usr/bin/env bash
-# Prune worktrees under .claude/worktrees/ whose branch is merged into
-# the repo's default branch AND has been deleted on origin. Safe for any
-# repo that uses the .claude/worktrees/ convention.
+# Prune worktrees under .claude/worktrees/ whose branch's PR has been
+# merged on GitHub. Safe for any repo using the .claude/worktrees/
+# convention.
+#
+# Detection (in order):
+#   1. `gh pr list --state merged --head <branch>` — primary; catches
+#      squash merges where the branch's commits aren't ancestors of
+#      the default branch (the pre-gh check) and where origin still
+#      has the branch (auto-delete-on-merge isn't enabled in the repo
+#      settings).
+#   2. `git merge-base --is-ancestor <branch> <default>` — fallback when
+#      `gh` is unavailable or unauthenticated. Catches merge-commit and
+#      rebase merges; misses squash merges. Combined with `ls-remote`
+#      gone-from-origin check (auto-delete signal), this is the original
+#      pre-gh logic, kept for offline/no-gh paths.
 #
 # Uncommitted / unmerged worktrees are skipped — the pruner never drops
-# work that isn't already in main + origin.
+# work that isn't safely reflected in the PR queue.
 #
 # Invoked manually (`dotfiles-prune-worktrees`) or from the post-merge
 # hook in $HOME/.dotfiles/git/hooks/post-merge.
@@ -15,6 +27,35 @@ default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null |
 dry_run=0
 [[ "${1:-}" == "--dry-run" ]] && dry_run=1
 
+has_gh=0
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  has_gh=1
+fi
+
+# Returns 0 if branch is safe to prune (PR merged or commits in default),
+# non-zero otherwise. Quiet on stdout.
+is_branch_merged() {
+  local branch="$1"
+
+  if [ "$has_gh" -eq 1 ]; then
+    # Empty array `[]` => no merged PR. `--limit 1` keeps the API call cheap.
+    if [ -n "$(gh pr list --state merged --head "$branch" --limit 1 --json number --jq '.[].number' 2>/dev/null)" ]; then
+      return 0
+    fi
+  fi
+
+  # Fallback: merge-commit / rebase merge detection. Requires the
+  # branch to be gone from origin (paranoia — without that signal we'd
+  # over-prune long-running branches that happen to share commits with
+  # default). Squash merges fail this branch.
+  if git merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null \
+     && ! git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
+}
+
 # Porcelain worktree list: alternating `worktree <path>` and `branch refs/heads/<name>` lines.
 git worktree list --porcelain | awk '
   /^worktree /{ path=$2 }
@@ -23,14 +64,8 @@ git worktree list --porcelain | awk '
   [[ "$path" == *"/.claude/worktrees/"* ]] || continue
   [[ "$branch" == "$default_branch" ]] && continue
 
-  # Has the branch been merged into default? Skip if not.
-  git merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null || {
-    continue
-  }
-  # Is the branch gone from origin? (Covers the "PR merged + branch deleted" case.)
-  if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-    continue
-  fi
+  is_branch_merged "$branch" || continue
+
   # Skip if the worktree has uncommitted changes — never discard live work.
   if [[ -n "$(git -C "$path" status --porcelain 2>/dev/null)" ]]; then
     echo "prune: skipping $path — uncommitted changes"
@@ -38,9 +73,9 @@ git worktree list --porcelain | awk '
   fi
 
   if [[ $dry_run -eq 1 ]]; then
-    echo "prune (dry-run): would drop $path (branch $branch merged + remote gone)"
+    echo "prune (dry-run): would drop $path (branch $branch merged)"
   else
-    echo "prune: $path (branch $branch merged + remote gone)"
+    echo "prune: $path (branch $branch merged)"
     git worktree remove "$path"
     git branch -D "$branch" >/dev/null 2>&1 || true
   fi
