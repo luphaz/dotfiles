@@ -3,6 +3,13 @@
 # unchanged and skip the noise. All `cask` entries are Mac-only by
 # definition (brew --cask isn't supported on Linux).
 
+# ── Taps ─────────────────────────────────────────────────────────────
+# datadog-labs/pack: public DD lab org's tap, used for `pup` below.
+# Keeps the Brewfile self-bootstrapping — `brew bundle` taps before
+# resolving formulas, so machines with a fresh Linuxbrew install
+# (workspaces) get the tap added on the first run.
+tap "datadog-labs/pack"
+
 # ── Shell & Terminal ─────────────────────────────────────────────────
 brew "bash"
 brew "coreutils"
@@ -34,7 +41,7 @@ brew "wget"
 brew "curl"
 brew "xz"
 brew "make"
-brew "pup"
+brew "datadog-labs/pack/pup"          # fully-qualified to disambiguate from any homebrew-core `pup` formula and to require the datadog-labs tap declared above
 brew "fswatch"
 
 # ── Git ──────────────────────────────────────────────────────────────
