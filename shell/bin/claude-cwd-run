@@ -8,7 +8,7 @@
 # Thin wrapper around claude-pane-cwd so tmux bindings stay compact.
 # Fzf (when needed) happens inside claude-pane-cwd; when exactly one Claude
 # matches, no fzf, no popup flash — safe under tmux run-shell -b.
-set -eu
+set -euo pipefail
 
 action="${1:?usage: claude-cwd-run <shell|open-pr|open-branch> [PANE_ID]}"
 pane_id="${2:-${TMUX_PANE:-}}"
