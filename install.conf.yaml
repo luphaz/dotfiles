@@ -129,26 +129,46 @@
         fi
       - Install + start atuin-server via brew services (macOS)
 
-# Clone oh-my-zsh plugins into ~/.dotfiles/.oh-my-zsh/custom/ (oh-my-zsh itself is a submodule)
-- git:
-    ~/.dotfiles/.oh-my-zsh/custom/themes/powerlevel10k:
-      url: https://github.com/romkatv/powerlevel10k.git
-      description: "oh my zsh - powerlevel10k"
-    ~/.dotfiles/.oh-my-zsh/custom/plugins/fzf-tab:
-      url: https://github.com/Aloxaf/fzf-tab.git
-      description: "oh my zsh - fzf-tab"
-    ~/.dotfiles/.oh-my-zsh/custom/plugins/fast-syntax-highlighting:
-      url: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
-      description: "oh my zsh - fast-syntax-highlighting"
-    ~/.dotfiles/.oh-my-zsh/custom/plugins/zsh-autosuggestions:
-      url: https://github.com/zsh-users/zsh-autosuggestions.git
-      description: "oh my zsh - zsh-autosuggestions"
-    ~/.dotfiles/.oh-my-zsh/custom/plugins/forgit:
-      url: https://github.com/wfxr/forgit.git
-      description: "oh my zsh - forgit"
-    ~/.dotfiles/.oh-my-zsh/custom/plugins/jq:
-      url: https://github.com/reegnz/jq-zsh-plugin.git
-      description: "oh my zsh - jq"
+# Sync oh-my-zsh custom plugins/themes (oh-my-zsh itself is a submodule
+# managed by `git submodule update` in the install script). Replaces
+# the dotbot-git directive: that plugin's clone-or-pull mode worked
+# online but spammed "git command failed" once per entry during a
+# GitHub outage AND propagated the failure into dotbot's "Some tasks
+# were not executed successfully" — which the wrapper used to swallow.
+# This shell block keeps the auto-update behaviour but tolerates
+# offline runs gracefully:
+#   - Existing dir: `git pull --quiet 2>/dev/null || true` — silent on
+#     network failure, kept-existing version stays in place.
+#   - Missing dir: `git clone --quiet ... || warn` — best-effort; if
+#     offline on a fresh machine, the user sees a single warning per
+#     missing plugin rather than dotbot's noise. Plugin will be cloned
+#     on the next online run.
+# `method: clone-or-pull` (dotbot-git default) is preserved in spirit;
+# we just route through shell so we can suppress transient errors.
+- shell:
+    - - |
+        custom="$HOME/.dotfiles/.oh-my-zsh/custom"
+        plugins=(
+          "themes/powerlevel10k|https://github.com/romkatv/powerlevel10k.git"
+          "plugins/fzf-tab|https://github.com/Aloxaf/fzf-tab.git"
+          "plugins/fast-syntax-highlighting|https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+          "plugins/zsh-autosuggestions|https://github.com/zsh-users/zsh-autosuggestions.git"
+          "plugins/forgit|https://github.com/wfxr/forgit.git"
+          "plugins/jq|https://github.com/reegnz/jq-zsh-plugin.git"
+        )
+        for entry in "${plugins[@]}"; do
+          path="${entry%%|*}"
+          url="${entry##*|}"
+          dir="$custom/$path"
+          if [ -d "$dir/.git" ]; then
+            git -C "$dir" pull --quiet --ff-only 2>/dev/null || true
+          else
+            mkdir -p "$(dirname "$dir")"
+            git clone --quiet "$url" "$dir" \
+              || echo "  ⚠ couldn't clone ${path##*/} (offline?) — will retry next install"
+          fi
+        done
+      - Sync oh-my-zsh custom plugins/themes (offline-tolerant)
 
 - create:
     - ~/.config/nvim
@@ -186,6 +206,12 @@
       path: ~/.dotfiles/atuin/server.toml
       if: '[ "$(uname)" = "Darwin" ]'
     ~/.config/atuin/config.toml: ~/.dotfiles/atuin/config.toml
+    # Pin tfenv's global default Terraform version. tfenv reads
+    # ~/.terraform-version when no closer .terraform-version exists, so
+    # this gives a sane default on every machine + repo. Edit the file
+    # in this repo to bump; the next install pass picks up the change
+    # via the `tfenv install` shell block below.
+    ~/.terraform-version: ~/.dotfiles/tfenv/.terraform-version
     # Per-file symlinks (NOT a directory symlink) so the dd overlay's xbar
     # plugin (045-workspaces.2m.sh, symlinked separately by workspaces-dotfiles
     # install.sh) can coexist alongside the public ones. The `/*` glob
@@ -204,3 +230,14 @@
       force: true
       create: true
       if: '[ "$(uname)" = "Darwin" ]'
+
+# ── tfenv bootstrap ─────────────────────────────────────────────────
+# Install the pinned terraform version after the ~/.terraform-version
+# symlink is in place (link block above). `tfenv install` with no arg
+# reads ~/.terraform-version, fetches that version's binary if missing,
+# and is a no-op when already installed — so this is cache-driven on
+# repeat runs. Brewfile already installs tfenv itself; this just
+# bootstraps the actual terraform binary it shims to.
+- shell:
+    - - command -v tfenv >/dev/null 2>&1 && tfenv install >/dev/null 2>&1 || true
+      - Install pinned terraform via tfenv (reads ~/.terraform-version)
