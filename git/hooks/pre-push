@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# pre-push — defense-in-depth for terraform-docs drift, scoped to the
+# .tf modules you changed in the pushed commits.
+#
+# Scope: parses the pre-push stdin (`<local-ref> <local-sha>
+# <remote-ref> <remote-sha>` per pushed ref), diffs each range, picks
+# the unique parent dirs of changed .tf files, runs `terraform-docs
+# --output-mode check` on each — fails the push if any has drift.
+#
+# Why scoped: walking the whole repo would fail you for modules that
+# were already drifty when you cloned (someone else didn't run docs).
+# Scoping ensures the gate only flags drift in modules YOU touched.
+#
+# Smart no-op:
+#   - skipped if terraform-docs isn't installed
+#   - skipped if no .tf files in the pushed range
+#   - skipped per-module if README.md is missing or has no markers
+# So this is safe to keep in personal dotfiles even on non-Terraform
+# repos.
+#
+# Bypass (rare — emergency / known-tooling-issue): git push --no-verify
+set -euo pipefail
+
+command -v terraform-docs >/dev/null 2>&1 || exit 0
+git rev-parse --show-toplevel >/dev/null 2>&1 || exit 0
+repo_root=$(git rev-parse --show-toplevel)
+
+ZERO_SHA="0000000000000000000000000000000000000000"
+default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||') || default_branch=main
+
+# Collect changed .tf parent dirs across all pushed refs.
+changed_dirs=()
+while IFS=' ' read -r _local_ref local_sha _remote_ref remote_sha; do
+  # Branch deletion (local SHA all zeros) — nothing to push, no docs to check.
+  [ "$local_sha" = "$ZERO_SHA" ] && continue
+
+  if [ "$remote_sha" = "$ZERO_SHA" ]; then
+    # New branch on the remote — diff against the merge-base with default.
+    base=$(git merge-base "$local_sha" "origin/$default_branch" 2>/dev/null || true)
+    [ -z "$base" ] && continue
+    range="$base..$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    [[ "$f" == *.tf ]] || continue
+    [ -f "$repo_root/$f" ] || continue   # skip deletions
+    changed_dirs+=("$repo_root/$(dirname "$f")")
+  done < <(git diff --name-only "$range" 2>/dev/null || true)
+done
+
+[ ${#changed_dirs[@]} -eq 0 ] && exit 0
+
+# Dedupe.
+unique_dirs=$(printf '%s\n' "${changed_dirs[@]}" | sort -u)
+
+drift=0
+drift_dirs=()
+while IFS= read -r tf_dir; do
+  readme="$tf_dir/README.md"
+  [ -f "$readme" ] || continue
+  grep -q "BEGIN_TF_DOCS" "$readme" || continue
+  if ! terraform-docs markdown --output-file README.md --output-mode check "$tf_dir" >/dev/null 2>&1; then
+    drift=1
+    drift_dirs+=("${tf_dir#$repo_root/}")
+  fi
+done <<<"$unique_dirs"
+
+[ "$drift" = "0" ] && exit 0
+
+cat >&2 <<MSG
+
+🚫 PUSH BLOCKED: terraform-docs is out-of-date in module(s) you changed:
+
+$(printf '   - %s\n' "${drift_dirs[@]}")
+
+   Refresh the READMEs:
+$(printf '     terraform-docs markdown --output-file README.md --output-mode inject %s\n' "${drift_dirs[@]}")
+
+   Then 'git add' the changes, commit, and re-push.
+
+   Emergency bypass (do NOT make a habit): git push --no-verify
+MSG
+exit 1
