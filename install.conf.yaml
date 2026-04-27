@@ -171,7 +171,14 @@
     ~/.config/nvim/init.lua: nvim/init.lua
     ~/.config/atuin/server.toml: atuin/server.toml
     ~/.config/atuin/config.toml: atuin/config.toml
+    # Per-file symlinks (NOT a directory symlink) so the dd overlay's xbar
+    # plugin (045-workspaces.2m.sh, symlinked separately by workspaces-dotfiles
+    # install.sh) can coexist alongside the public ones. The `/*` glob
+    # expansion is what makes dotbot create one symlink per file rather than
+    # symlinking the whole `xbar/plugins` directory; force:true clobbers any
+    # stale entries (e.g. when switching worktrees: previous-worktree
+    # symlinks get re-pointed at the new BASEDIR).
     ~/Library/Application Support/xbar/plugins:
-      path: xbar/plugins
+      path: xbar/plugins/*
       glob: true
       force: true
