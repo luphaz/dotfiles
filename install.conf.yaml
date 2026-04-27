@@ -186,6 +186,12 @@
       path: ~/.dotfiles/atuin/server.toml
       if: '[ "$(uname)" = "Darwin" ]'
     ~/.config/atuin/config.toml: ~/.dotfiles/atuin/config.toml
+    # Pin tfenv's global default Terraform version. tfenv reads
+    # ~/.terraform-version when no closer .terraform-version exists, so
+    # this gives a sane default on every machine + repo. Edit the file
+    # in this repo to bump; the next install pass picks up the change
+    # via the `tfenv install` shell block below.
+    ~/.terraform-version: ~/.dotfiles/tfenv/.terraform-version
     # Per-file symlinks (NOT a directory symlink) so the dd overlay's xbar
     # plugin (045-workspaces.2m.sh, symlinked separately by workspaces-dotfiles
     # install.sh) can coexist alongside the public ones. The `/*` glob
@@ -204,3 +210,14 @@
       force: true
       create: true
       if: '[ "$(uname)" = "Darwin" ]'
+
+# ── tfenv bootstrap ─────────────────────────────────────────────────
+# Install the pinned terraform version after the ~/.terraform-version
+# symlink is in place (link block above). `tfenv install` with no arg
+# reads ~/.terraform-version, fetches that version's binary if missing,
+# and is a no-op when already installed — so this is cache-driven on
+# repeat runs. Brewfile already installs tfenv itself; this just
+# bootstraps the actual terraform binary it shims to.
+- shell:
+    - - command -v tfenv >/dev/null 2>&1 && tfenv install >/dev/null 2>&1 || true
+      - Install pinned terraform via tfenv (reads ~/.terraform-version)
