@@ -29,3 +29,6 @@ $KUBECTL config get-contexts --no-headers -o name 2>/dev/null | sort | while rea
   esac
   echo "$CTX |${COLOR} bash=$KUBECTL param1=config param2=use-context param3=$CTX terminal=false"
 done
+
+echo "---"
+echo "Refresh | refresh=true"
