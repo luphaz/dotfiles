@@ -35,6 +35,8 @@ COUNT=$(echo "$JSON" | $JQ 'length')
 
 if [ "$COUNT" -eq 0 ]; then
   echo "👀 review 0 | color=#24292f"
+  echo "---"
+  echo "Refresh | refresh=true"
   exit 0
 fi
 
@@ -87,3 +89,5 @@ echo "$JSON" | $JQ -r --argjson names "$NAME_MAP" --arg days "$STALE_DAYS" --arg
   "\(.repository.nameWithOwner) - \(.title) | href=\(.url)\($stale_color)",
   "#\(.number) by \($author) - \(.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%B %d, %Y"))\($stale_tag) | size=12 color=#586069",
   "---"'
+
+echo "Refresh | refresh=true"

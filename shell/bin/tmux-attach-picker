@@ -43,10 +43,14 @@ fi
 
 # Each row is <tag>\t<name>; fzf hides column 1 via --with-nth=2.
 # Tag distinguishes the "zsh" sentinel from a session literally named "zsh".
+# `|| true` on the tmux pipeline: with no server (or a server with zero sessions
+# on some tmux versions) `list-sessions` exits 1, pipefail propagates it, and
+# bash 5.x then aborts the enclosing `entries=$(...)` under `set -e` — wiping
+# the "skip\tzsh" row too and silently killing the picker before fzf opens.
 entries=$(
   printf 'skip\tzsh\n'
   tmux list-sessions -F '#{session_last_attached} attach	#{session_name}' 2>/dev/null \
-    | sort -rn | cut -d' ' -f2-
+    | sort -rn | cut -d' ' -f2- || true
 )
 
 # fzf exits 1 on "no match" even when the user pressed Enter or Ctrl+N with a

@@ -23,3 +23,5 @@ echo "---"
 echo "$RESULT" | sed 's/|/∣/g' | while IFS= read -r line; do
   echo "$line | trim=false"
 done
+echo "---"
+echo "Refresh | refresh=true"

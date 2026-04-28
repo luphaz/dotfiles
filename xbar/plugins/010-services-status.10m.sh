@@ -111,3 +111,6 @@ print_service Slack     "https://status.slack.com"
 print_service Zoom      "https://www.zoomstatus.com"
 
 rm -rf "$TMPDIR"
+
+echo "---"
+echo "Refresh | refresh=true"

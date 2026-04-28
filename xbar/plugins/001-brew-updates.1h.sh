@@ -30,3 +30,5 @@ if [ -n "$UPDATES" ]; then
   echo "Upgrade all | bash=/opt/homebrew/bin/brew param1=upgrade terminal=false refresh=true"
   echo "$UPDATES" | awk '{print $0 " | terminal=false refresh=true bash=/opt/homebrew/bin/brew param1=upgrade param2=" $1}'
 fi
+echo "---"
+echo "Refresh | refresh=true"
