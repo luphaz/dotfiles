@@ -4,8 +4,21 @@
 #   - type a name that matches no session + Enter → create a new session with that name
 #   - Ctrl+N inside fzf → force-create a session with the typed query (bypasses matches)
 # The fzf header updates live to indicate which action Enter will perform.
-# Used by the tmux Ctrl+S binding.
+# Used by the tmux Ctrl+S binding (inside tmux) and the `ts` zsh function
+# (anywhere — outside tmux it falls back to `tmux attach` instead of switch-client,
+# which only works with an active client).
 set -euo pipefail
+
+# Inside tmux, switch the current client; outside, attach. switch-client is a
+# no-op without a client, so plain `ts` from a fresh shell would otherwise fail.
+attach_or_switch() {
+  local name="$1"
+  if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "$name"
+  else
+    tmux attach -t "$name"
+  fi
+}
 
 HINT='enter: switch · type a new name to create · ctrl-n: force create'
 
@@ -49,11 +62,11 @@ if [ "$key" = "ctrl-n" ]; then
   [ -z "$name" ] && [ -n "$selection" ] && name=$(printf '%s' "$selection" | awk '{print $NF}')
   [ -z "$name" ] && exit 0
   tmux new-session -d -s "$name" 2>/dev/null || true
-  tmux switch-client -t "$name"
+  attach_or_switch "$name"
 elif [ -n "$selection" ]; then
   name=$(printf '%s' "$selection" | awk '{print $NF}')
-  tmux switch-client -t "$name"
+  attach_or_switch "$name"
 elif [ -n "$query" ]; then
   tmux new-session -d -s "$query"
-  tmux switch-client -t "$query"
+  attach_or_switch "$query"
 fi
