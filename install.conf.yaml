@@ -9,10 +9,11 @@
     # Bootstrap all submodules: dotbot, dotbot-git, dotbot-brew, .oh-my-zsh
     - [git submodule update --init --recursive, Installing submodules]
     # Drop-and-recreate our managed bootstrap block at the top of ~/.zshrc.
-    # The block wires in (in order): tmux-attach-picker (must run before p10k
-    # so fzf has a clean tty), p10k instant prompt, and sourcing of
-    # ~/.zshrcdotfiles. Everything between the BEGIN/END markers is owned by
-    # this installer — hand-edits inside will be overwritten on next run.
+    # The block wires in (in order): tmux auto-attach (must run before p10k
+    # so the takeover happens before instant prompt paints), p10k instant
+    # prompt, and sourcing of ~/.zshrcdotfiles. Everything between the
+    # BEGIN/END markers is owned by this installer — hand-edits inside will
+    # be overwritten on next run.
     # Migration: also strips legacy unmarked p10k/source and old-style
     # ### tmux-picker blocks so users upgrading from the previous install
     # script end up with a single managed section. Block is staged in a
@@ -21,15 +22,21 @@
         bf=$(mktemp)
         cat > "$bf" <<'BLOCK'
         ### dotfiles-managed — BEGIN (drop-and-recreated by install.conf.yaml; do not hand-edit)
-        # tmux-picker — runs BEFORE p10k's instant prompt so fzf has a clean
-        # tty. On session pick, exec tmux (no p10k startup cost). SHLVL=1
-        # guard makes subshells and `exec zsh` skip naturally.
-        if [[ -z "$TMUX" && $SHLVL -eq 1 && -o interactive && -t 0 && -t 1 ]]; then
+        # tmux auto-attach — every fresh interactive shell becomes a tmux
+        # client. Attaches to the most-recently-active session, or creates
+        # `main` if none exist. SHLVL=1 guard makes subshells and `exec zsh`
+        # skip naturally; NO_TMUX=1 is the escape hatch for a one-off plain
+        # zsh (e.g. when tmux itself is misbehaving).
+        if [[ -z "$TMUX" && -z "$NO_TMUX" && $SHLVL -eq 1 && -o interactive && -t 0 && -t 1 ]]; then
           export PATH="$HOME/.dotfiles/shell/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
-          if command -v tmux-attach-picker >/dev/null 2>&1; then
-            _tmux_choice=$(tmux-attach-picker)
-            [[ -n "$_tmux_choice" ]] && exec tmux attach -t "$_tmux_choice"
-            unset _tmux_choice
+          if command -v tmux >/dev/null 2>&1; then
+            _last=$(tmux list-sessions -F '#{session_last_attached} #{session_name}' 2>/dev/null \
+              | sort -rn | head -1 | awk '{print $2}')
+            if [[ -n "$_last" ]]; then
+              exec tmux attach -t "$_last"
+            else
+              exec tmux new-session -s main
+            fi
           fi
         fi
 
