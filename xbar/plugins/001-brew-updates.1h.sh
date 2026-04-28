@@ -22,7 +22,15 @@ OUTDATED=$(/opt/homebrew/bin/brew outdated --quiet);
 # stops rendering all subsequent plugins, which manifests as an empty menu.
 UPDATES=$(comm -13 <(printf '%s\n' "$PINNED" | sort) <(printf '%s\n' "$OUTDATED" | sort))
 
-UPDATE_COUNT=$(echo "$UPDATES" | grep -c '[^[:space:]]');
+# `grep -c` exits 1 on no matches, which combined with plugin-guard's `set -e`
+# silently aborted the whole plugin whenever there was nothing to update — and
+# `grep -c` produced no stderr, so the log just showed bare "exit 1" markers.
+# Branch on emptiness instead so the empty-updates path stays exit 0.
+if [ -z "$UPDATES" ]; then
+  UPDATE_COUNT=0
+else
+  UPDATE_COUNT=$(printf '%s\n' "$UPDATES" | wc -l | tr -d ' ')
+fi
 
 echo "🍺 brew $UPDATE_COUNT | dropdown=false"
 echo "---";
