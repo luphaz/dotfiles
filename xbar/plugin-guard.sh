@@ -54,6 +54,20 @@ _xbar_trim_log() {
     && mv "${_xbar_log}.tmp" "$_xbar_log"
 }
 
+# ERR trap: log the failing command + line BEFORE set -e exits the shell.
+# Without this, a silent failure (e.g. `grep -c PATTERN` on no match — exits 1
+# but produces no stderr) leaves only a bare "── exit N ──" in the log with no
+# clue which line aborted. `set -E` propagates the trap into functions and
+# subshells. `${BASH_SOURCE[1]##*/}` is the plugin filename (the guard itself
+# is BASH_SOURCE[0]); falls back to the guard's name if called from top level.
+set -E
+_xbar_on_err() {
+  local rc=$? line=$1 cmd=$2
+  printf '── err rc=%d at %s:%d ──\n  %s\n' \
+    "$rc" "${BASH_SOURCE[1]##*/}" "$line" "$cmd" >>"$_xbar_log"
+}
+trap '_xbar_on_err "$LINENO" "$BASH_COMMAND"' ERR
+
 _xbar_guard() {
   local rc=$?
   if [ "$rc" -eq 0 ]; then
