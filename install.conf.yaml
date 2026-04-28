@@ -26,16 +26,21 @@
         # client. Attaches to the most-recently-active session, or creates
         # `main` if none exist. SHLVL=1 guard makes subshells and `exec zsh`
         # skip naturally; NO_TMUX=1 is the escape hatch for a one-off plain
-        # zsh (e.g. when tmux itself is misbehaving).
+        # zsh (e.g. when tmux itself is misbehaving). The `&& exit` (instead
+        # of `exec tmux`) is deliberate: if tmux fails to take over the tty
+        # (e.g. ssh through a relay that allocates a pty zsh accepts but tmux
+        # rejects with "open terminal failed: not a terminal"), the shell
+        # falls through to a plain interactive zsh rather than tearing down
+        # the whole login session.
         if [[ -z "$TMUX" && -z "$NO_TMUX" && $SHLVL -eq 1 && -o interactive && -t 0 && -t 1 ]]; then
           export PATH="$HOME/.dotfiles/shell/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
           if command -v tmux >/dev/null 2>&1; then
             _last=$(tmux list-sessions -F '#{session_last_attached} #{session_name}' 2>/dev/null \
               | sort -rn | head -1 | awk '{print $2}')
             if [[ -n "$_last" ]]; then
-              exec tmux attach -t "$_last"
+              tmux attach -t "$_last" && exit
             else
-              exec tmux new-session -s main
+              tmux new-session -s main && exit
             fi
           fi
         fi
