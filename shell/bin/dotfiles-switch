@@ -70,7 +70,30 @@ echo "→ switching ~/.dotfiles to ${target}"
 
 if [ "$target" = "main" ]; then
   echo "  git pull..."
-  (cd "$new_path" && git pull --ff-only 2>&1 | sed 's/^/    /') || echo "    (pull failed — continuing)"
+  # Force-push aware: a history rewrite (e.g. the redact-private-names sweep)
+  # leaves local main with commits that aren't in origin anymore, and a plain
+  # `git pull --ff-only` errors out. When that happens AND the working tree is
+  # clean AND we don't have any local-only commits ahead of origin, treat the
+  # divergence as a remote rewrite and `reset --hard origin/main`.
+  (
+    cd "$new_path"
+    git fetch --quiet origin main
+    local_sha=$(git rev-parse HEAD)
+    remote_sha=$(git rev-parse origin/main)
+    if [ "$local_sha" = "$remote_sha" ]; then
+      echo "    already up to date"
+    elif git merge-base --is-ancestor "$local_sha" "$remote_sha" 2>/dev/null; then
+      git pull --ff-only 2>&1 | sed 's/^/    /'
+    elif git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      echo "    local main is ahead of origin (unpushed commits) — leaving alone" >&2
+    elif [ -z "$(git status --porcelain)" ]; then
+      echo "    main diverged from origin (likely force-push); resetting --hard"
+      git reset --hard origin/main 2>&1 | sed 's/^/    /'
+    else
+      echo "    main diverged AND tree is dirty — fix manually" >&2
+      false
+    fi
+  ) || echo "    (pull failed — continuing)"
 fi
 
 echo "  running install..."

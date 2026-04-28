@@ -45,8 +45,38 @@ if [ -n "$(git -C "$repo_dir" status --porcelain 2>/dev/null)" ]; then
   fi
 fi
 
-if ! git -C "$repo_dir" pull --ff-only 2>&1 | sed 's/^/    /'; then
-  echo "  → pull failed (non-fast-forward?); restoring local changes" >&2
+# Force-push aware: a remote history rewrite (e.g. the redact-private-names
+# sweep) leaves local main diverged from origin/main, and `git pull --ff-only`
+# errors out. After fetching, classify the divergence:
+#   - equal             → no-op
+#   - local ancestor    → fast-forward (the normal case)
+#   - remote ancestor   → local has unpushed commits → skip pull
+#   - true divergence   → reset --hard origin/main (the force-push case)
+# Working tree dirtiness is already handled by the stash above, so it's safe
+# to reset.
+git -C "$repo_dir" fetch --quiet origin main
+local_sha=$(git -C "$repo_dir" rev-parse HEAD)
+remote_sha=$(git -C "$repo_dir" rev-parse origin/main)
+
+pull_ok=0
+if [ "$local_sha" = "$remote_sha" ]; then
+  pull_ok=1
+elif git -C "$repo_dir" merge-base --is-ancestor "$local_sha" "$remote_sha" 2>/dev/null; then
+  if git -C "$repo_dir" pull --ff-only 2>&1 | sed 's/^/    /'; then
+    pull_ok=1
+  fi
+elif git -C "$repo_dir" merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+  echo "  → local main is ahead of origin (unpushed commits) — skipping pull" >&2
+  pull_ok=1
+else
+  echo "  → main diverged from origin (likely force-push); resetting --hard"
+  if git -C "$repo_dir" reset --hard origin/main 2>&1 | sed 's/^/    /'; then
+    pull_ok=1
+  fi
+fi
+
+if [ "$pull_ok" -ne 1 ]; then
+  echo "  → pull failed; restoring local changes" >&2
   [ "$stashed" = "1" ] && git -C "$repo_dir" stash pop 2>&1 | sed 's/^/    /' || true
   exit 1
 fi
