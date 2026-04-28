@@ -4,9 +4,21 @@ theme = tokyonight
 # ── Shell integration ────────────────────────────────────────────────
 shell-integration = zsh
 
+# Disable the shell-integration "title" feature so it doesn't fight tmux
+# over the tab title. tmux.conf is configured (set-titles on) to push
+# the current session+window via OSC 0; without this, zsh's PROMPT-driven
+# title would clobber that on every command. cursor/sudo features stay
+# enabled by default — only title is opted out.
+shell-integration-features = no-title
+
 # ── Extended keys (required for Claude Code Shift+Enter / Ctrl+Enter)
 # Ghostty sends these natively; tmux.conf forwards them with extkeys.
 
 # ── Keybinds ─────────────────────────────────────────────────────────
 # CMD+K → clear screen + scrollback (forwarded to tmux binding)
 keybind = cmd+k=text:\x1bk
+
+# CMD+SHIFT+R → manual override: prompt for a sticky tab title that
+# pins past tmux's set-titles updates (useful when one tab hosts
+# several tmux sessions and the auto-title would flip-flop).
+keybind = cmd+shift+r=prompt_tab_title
