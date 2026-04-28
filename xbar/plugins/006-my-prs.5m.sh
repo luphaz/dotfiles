@@ -22,6 +22,8 @@ if [ $? -ne 0 ] || [ -z "$JSON" ]; then
   echo "🚀 err | color=red"
   echo "---"
   echo "Failed to fetch PRs via gh"
+  echo "---"
+  echo "Refresh | refresh=true"
   exit 0
 fi
 
@@ -31,6 +33,8 @@ if [ "$COUNT" -eq 0 ]; then
   echo "🚀 prs 0 | color=#586069"
   echo "---"
   echo "No open PRs"
+  echo "---"
+  echo "Refresh | refresh=true"
   exit 0
 fi
 
@@ -43,29 +47,29 @@ echo "$JSON" | $JQ -r '.[] | "\(.repository.nameWithOwner) \(.number)"' | {
   idx=0
   while read -r nwo num; do
     (
-      # Fetch checks via API
-      checks_json=$($GH pr checks "$num" --repo "$nwo" --json name,state 2>/dev/null)
-      checks_rc=$?
+      # Don't let one PR's failure kill this subshell — without `set +e`, a
+      # failing `gh pr checks` (rate limit, network blip, repo without checks)
+      # would exit before writing the TMPFILE row, leaving a hole that the jq
+      # merge below silently drops the whole PR for. The result was an empty
+      # dropdown despite a non-zero menu-bar count.
+      set +e
 
-      if [ $checks_rc -ne 0 ] || [ -z "$checks_json" ] || [ "$checks_json" = "[]" ] || [ "$checks_json" = "null" ]; then
-        ci_state="none"
-      else
+      ci_state="none"
+      checks_json=$($GH pr checks "$num" --repo "$nwo" --json name,state 2>/dev/null)
+      if [ -n "$checks_json" ] && [ "$checks_json" != "[]" ] && [ "$checks_json" != "null" ]; then
         # states: SUCCESS, FAILURE, ERROR, PENDING, CANCELLED, SKIPPED, QUEUED, ...
         has_fail=$(echo "$checks_json" | $JQ '[.[] | select(.state == "FAILURE" or .state == "ERROR" or .state == "CANCELLED")] | length')
         has_pend=$(echo "$checks_json" | $JQ '[.[] | select(.state == "PENDING" or .state == "QUEUED" or .state == "STARTUP_FAILURE")] | length')
-        if [ "$has_fail" -gt 0 ]; then
-          ci_state="fail"
-        elif [ "$has_pend" -gt 0 ]; then
-          ci_state="pending"
-        else
-          ci_state="pass"
+        if   [ "${has_fail:-0}" -gt 0 ]; then ci_state="fail"
+        elif [ "${has_pend:-0}" -gt 0 ]; then ci_state="pending"
+        else                                  ci_state="pass"
         fi
       fi
 
-      # Fetch review decision via GraphQL
+      review_state="none"
       review_json=$($GH api "repos/${nwo}/pulls/${num}/reviews" --paginate 2>/dev/null)
-      if [ $? -eq 0 ] && [ -n "$review_json" ] && [ "$review_json" != "[]" ]; then
-        # Take the latest actionable review state per reviewer
+      if [ -n "$review_json" ] && [ "$review_json" != "[]" ]; then
+        # Take the latest actionable review state per reviewer.
         review_state=$(echo "$review_json" | $JQ -r '
           [.[] | select(.state != "COMMENTED" and .state != "DISMISSED" and .state != "PENDING")]
           | group_by(.user.login)
@@ -74,9 +78,8 @@ echo "$JSON" | $JQ -r '.[] | "\(.repository.nameWithOwner) \(.number)"' | {
             elif any(.state == "APPROVED") then "approved"
             else "none"
             end
-        ')
-      else
-        review_state="none"
+        ' 2>/dev/null)
+        [ -z "$review_state" ] && review_state="none"
       fi
 
       echo "${idx}|${ci_state}|${review_state}" >> "$TMPFILE"
@@ -160,3 +163,5 @@ echo "$MERGED" | $JQ -r '.[] |
   "#\(.number)\($review_label) — \(.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%b %d")) | size=12 color=#586069",
   "---"
 '
+
+echo "Refresh | refresh=true"

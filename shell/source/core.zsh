@@ -34,29 +34,13 @@ ta() {
   fi
 }
 
-ts() {
-  local session
-  session=$(tmux-ls \
-    | fzf --ansi --height=40% --reverse --no-sort \
-           --preview='tmux capture-pane -ep -t {-1}' \
-           --preview-window=right:60% \
-    | awk '{print $NF}') \
-    && tmux switch-client -t "$session"
-}
+# ts — pick a tmux session via fzf; switch (inside tmux) or attach (outside).
+# Supports inline create: type a name with no match + Enter to create it.
+ts() { tmux-switch }
 
-tk() {
-  local current sessions
-  current=$(tmux display-message -p '#S' 2>/dev/null)
-  sessions=$(tmux-ls \
-    | grep -v " ${current} " \
-    | fzf --ansi --height=40% --reverse --no-sort --multi \
-           --preview='tmux capture-pane -ep -t {-1}' \
-           --preview-window=right:60%) \
-    || return
-  echo "$sessions" | awk '{print $NF}' | while read -r s; do
-    tmux kill-session -t "$s" && echo "killed: $s"
-  done
-}
+# tk — kill one or more tmux sessions via fzf (Tab to multi-select).
+# Excludes the current session so you can't accidentally close your terminal.
+tk() { tmux-kill }
 
 # Navigation
 cdw() { cd "$(git rev-parse --show-toplevel)" }
