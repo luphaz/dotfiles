@@ -1,0 +1,10 @@
+# bat config — sourced from ~/.config/bat/config (symlinked by install.conf.yaml).
+# `bat --config-file` shows the resolved path; `bat --list-languages` shows
+# available syntaxes. Custom syntaxes can be dropped in ~/.config/bat/syntaxes/
+# (followed by `bat cache --build`).
+
+# CUE has no native sublime-syntax shipped with bat. Go is the closest visual
+# match: `//` line comments, `package`/`import` keywords, identifier-keyed
+# struct literals, and string/number literals all line up. The trade-off is
+# `#Foo` definition names render as plain identifiers (Go has no `#`).
+--map-syntax="*.cue:Go"

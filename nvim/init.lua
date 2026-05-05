@@ -215,6 +215,14 @@ require('lazy').setup({
         vim.lsp.config(name, server)
         vim.lsp.enable(name)
       end
+
+      -- CUE: binary comes from Homebrew (`brew "cue"`), so it bypasses Mason.
+      vim.lsp.config('cue', {
+        cmd = { 'cue', 'lsp' },
+        filetypes = { 'cue' },
+        root_markers = { 'cue.mod', '.git' },
+      })
+      vim.lsp.enable('cue')
     end,
   },
 
@@ -229,12 +237,16 @@ require('lazy').setup({
     opts = {
       notify_on_error = false,
       format_on_save = { timeout_ms = 500, lsp_format = 'fallback' },
+      formatters = {
+        cue_fmt = { command = 'cue', args = { 'fmt', '-' }, stdin = true },
+      },
       formatters_by_ft = {
         lua = { 'stylua' },
         go = { 'goimports', 'gofumpt' },
         terraform = { 'terraform_fmt' },
         tf = { 'terraform_fmt' },
         ['terraform-vars'] = { 'terraform_fmt' },
+        cue = { 'cue_fmt' },
       },
     },
   },
@@ -290,7 +302,7 @@ require('lazy').setup({
     build = ':TSUpdate',
     branch = 'main',
     config = function()
-      local parsers = { 'bash', 'c', 'diff', 'go', 'gomod', 'gosum', 'hcl', 'terraform', 'json', 'yaml', 'toml', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'python', 'html', 'vim', 'vimdoc', 'query', 'dockerfile' }
+      local parsers = { 'bash', 'c', 'cue', 'diff', 'go', 'gomod', 'gosum', 'hcl', 'terraform', 'json', 'yaml', 'toml', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'python', 'html', 'vim', 'vimdoc', 'query', 'dockerfile' }
       require('nvim-treesitter').install(parsers)
 
       local function treesitter_try_attach(buf, language)
