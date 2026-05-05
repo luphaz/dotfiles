@@ -211,6 +211,11 @@
       create: true
       if: '[ "$(uname)" = "Darwin" ]'
     ~/.config/nvim/init.lua: ~/.dotfiles/nvim/init.lua
+    # bat config: maps *.cue → Go syntax (bat ships no native CUE grammar).
+    # `create: true` lets dotbot mkdir ~/.config/bat on first install.
+    ~/.config/bat/config:
+      path: ~/.dotfiles/bat/config
+      create: true
     # atuin-server runs only on the Mac (brew service `atuin-server`), so
     # the server config is Mac-only. atuin-server.toml on Linux would be
     # a dangling reference (no service consumes it).
