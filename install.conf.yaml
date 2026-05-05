@@ -19,6 +19,9 @@
     # script end up with a single managed section. Block is staged in a
     # tempfile because BSD awk (macOS) rejects multi-line -v.
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin zshrc || exit 0
+        trap _step_end_auto EXIT
         bf=$(mktemp)
         cat > "$bf" <<'BLOCK'
         ### dotfiles-managed — BEGIN (drop-and-recreated by install.conf.yaml; do not hand-edit)
@@ -80,6 +83,9 @@
     # Ensure ~/.ssh/config is a regular file (not a symlink) that includes our public SSH config.
     # Grep for the actual Include directive — avoids false-positive on the comment at top of ssh/config.
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin ssh-config || exit 0
+        trap _step_end_auto EXIT
         if [[ -L ~/.ssh/config ]]; then
           rm ~/.ssh/config
         fi
@@ -89,6 +95,9 @@
     # Prevents `git config --global` or tooling like dd-auth from writing DataDog-specific settings
     # (e.g. core.hooksPath = /usr/local/dd/...) into the public dotfiles repo.
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin gitconfig || exit 0
+        trap _step_end_auto EXIT
         if [[ -L ~/.gitconfig ]]; then
           rm ~/.gitconfig
         fi
@@ -100,6 +109,9 @@
     # Enable macOS press-and-hold accent popup in Ghostty (disabled by default in terminal apps)
     # Note: popup appears after one key repeat (Ghostty limitation — InitialKeyRepeat has no effect)
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin ghostty || exit 0
+        trap _step_end_auto EXIT
         if [[ "$(uname)" == "Darwin" ]]; then
           defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool true
         fi
@@ -118,6 +130,9 @@
     # Migration cleanup: #14 rendered a hand-rolled plist at
     # ~/Library/LaunchAgents/sh.atuin.server.plist. Tear it down if present.
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin atuin-server || exit 0
+        trap _step_end_auto EXIT
         if [[ "$(uname)" == "Darwin" ]] && brew list atuin-server >/dev/null 2>&1; then
           # Tear down the legacy hand-rolled plist from PR #14 (no-op if absent)
           legacy_plist="$HOME/Library/LaunchAgents/sh.atuin.server.plist"
@@ -159,6 +174,9 @@
 # we just route through shell so we can suppress transient errors.
 - shell:
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin omz-plugins || exit 0
+        trap _step_end_auto EXIT
         custom="$HOME/.dotfiles/.oh-my-zsh/custom"
         plugins=(
           "themes/powerlevel10k|https://github.com/romkatv/powerlevel10k.git"
@@ -168,16 +186,20 @@
           "plugins/forgit|https://github.com/wfxr/forgit.git"
           "plugins/jq|https://github.com/reegnz/jq-zsh-plugin.git"
         )
+        # NOTE: dotbot runs blocks under $SHELL (zsh on this machine). In zsh,
+        # lowercase `path` is a special array tied to `$PATH` — assigning it
+        # silently clobbers PATH and breaks every later PATH-resolved command
+        # in this block (git, mkdir, …). Use `relpath` instead.
         for entry in "${plugins[@]}"; do
-          path="${entry%%|*}"
+          relpath="${entry%%|*}"
           url="${entry##*|}"
-          dir="$custom/$path"
+          dir="$custom/$relpath"
           if [ -d "$dir/.git" ]; then
             git -C "$dir" pull --quiet --ff-only 2>/dev/null || true
           else
             mkdir -p "$(dirname "$dir")"
             git clone --quiet "$url" "$dir" \
-              || echo "  ⚠ couldn't clone ${path##*/} (offline?) — will retry next install"
+              || echo "  ⚠ couldn't clone ${relpath##*/} (offline?) — will retry next install"
           fi
         done
       - Sync oh-my-zsh custom plugins/themes (offline-tolerant)
@@ -268,6 +290,9 @@
 # fresh; anything older was abandoned.
 - shell:
     - - |
+        . "$HOME/.dotfiles/shell/bin/dotfiles-step.sh"
+        _step_begin tfenv || exit 0
+        trap _step_end_auto EXIT
         if command -v tfenv >/dev/null 2>&1; then
           export TFENV_CONFIG_DIR="${HOME}/.tfenv"
           mkdir -p "$TFENV_CONFIG_DIR"

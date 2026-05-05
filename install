@@ -13,6 +13,18 @@ BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 cd "${BASEDIR}"
 
+# Per-step timing + skip support. The helper provides `step` (one-shot wrap)
+# and `_step_begin`/`_step_end` (multi-line, used inside dotbot shell blocks
+# in install.conf.yaml). DOTFILES_TIMINGS is exported so dotbot subprocesses
+# inherit it and append rows to the same log; the EXIT trap below prints a
+# sorted summary so it's obvious which step ate the wall clock.
+# shellcheck source=shell/bin/dotfiles-step.sh
+. "${BASEDIR}/shell/bin/dotfiles-step.sh"
+DOTFILES_TIMINGS="$(mktemp -t dotfiles-timings.XXXXXX)"
+export DOTFILES_TIMINGS DOTFILES_SKIP="${DOTFILES_SKIP:-}"
+_INSTALL_START=$(date +%s)
+trap '_step_summary "$_INSTALL_START"; rm -f "$DOTFILES_TIMINGS"' EXIT
+
 # Self-update: stash + ff-pull + pop on main, then exec the post-pull
 # version. Logic lives in shell/bin/dotfiles-self-update (shared with
 # the private dd overlay's install). _DOTFILES_INSTALL_PULLED guards
@@ -30,7 +42,7 @@ fi
 ln -sfn "${BASEDIR}" "${HOME}/.dotfiles"
 
 # Bootstrap all submodules (dotbot, dotbot-git, dotbot-brew, .oh-my-zsh) before running dotbot
-git submodule update --init --recursive
+step submodules -- git submodule update --init --recursive
 
 # Defensive: replace any directory-level symlinks at our managed link
 # destinations with a fresh empty dir. Old versions of this config used
@@ -47,7 +59,7 @@ if [ -L "$_xbar_plugins_dest" ]; then
 fi
 unset _xbar_plugins_dest
 
-"${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-git -c "${CONFIG}" "${@}"
+step dotbot-main -- "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-git -c "${CONFIG}" "${@}"
 
 # Linuxbrew bootstrap — on Linux, install Homebrew if missing so the Brewfile
 # step below has something to run. macOS laptops come with brew from the
@@ -75,5 +87,5 @@ fi
 # stays uniform whether it's a fresh clone or a worktree switch — every run
 # ends in the same final state.
 if command -v brew >/dev/null 2>&1; then
-  "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-brew -c <(echo '- brewfile: [Brewfile]') "${@}"
+  step brewfile -- "${BASEDIR}/${DOTBOT_DIR}/${DOTBOT_BIN}" -d "${BASEDIR}" --plugin-dir dotbot-brew -c <(echo '- brewfile: [Brewfile]') "${@}"
 fi
